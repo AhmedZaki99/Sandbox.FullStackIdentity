@@ -14,7 +14,7 @@ services:
       - Application__Secrets__SendgridApiKey
       - Application__Secrets__SendgridVerificationKey
     networks:
-      internal-network:
+      default:
         aliases:
           - ${API_HOST:-api}
       shared-network:
@@ -36,8 +36,6 @@ services:
     env_file:
       - config-app.env
     secrets: *app-secrets
-    networks:
-      internal-network:
     restart: unless-stopped
     depends_on:
       migrator:
@@ -52,6 +50,8 @@ services:
       
   migrator:
     image: ${DOCKER_REGISTRY-}sandbox.fullstack-identity.migrator:latest
+    env_file:
+      - config-app.env
     secrets: &db-secrets
       - POSTGRES_USER
       - POSTGRES_PASSWORD
@@ -72,14 +72,16 @@ services:
       - target: 5432
         published: ${DATABASE_PORT:-5432}
     networks:
-      internal-network:
+      default:
         aliases:
           - ${DATABASE_HOST:-db}
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
-      interval: 10s
-      timeout: 5s
+      test: pg_isready -U $(cat /run/secrets/POSTGRES_USER)
+      start_period: 10s
+      start_interval: 3s
+      interval: 30s
+      timeout: 15s
       retries: 5
 
   redis:
@@ -88,7 +90,7 @@ services:
     volumes:
       - redis-data:/data
     networks:
-      internal-network:
+      default:
         aliases:
           - ${REDIS_HOST:-redis}
     restart: always
@@ -99,7 +101,6 @@ volumes:
   redis-data:
 
 networks:
-  internal-network:
   shared-network:
     name: shared-network
     driver: bridge

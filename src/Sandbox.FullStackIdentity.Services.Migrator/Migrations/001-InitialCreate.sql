@@ -1,7 +1,4 @@
 
-BEGIN;
-
-
 CREATE TABLE global_configs (
     key varchar(64) PRIMARY KEY,
     value varchar(256) NOT NULL
@@ -20,19 +17,19 @@ CREATE UNIQUE INDEX idx_tenants_handle ON tenants (handle);
 CREATE TABLE users (
     id uuid PRIMARY KEY,
     tenant_id uuid REFERENCES tenants (id),
-    is_invited boolean NOT NULL,
-    invitation_accepted boolean NOT NULL,
-    granted_permission int NOT NULL,
+    is_invited boolean NOT NULL DEFAULT FALSE,
+    invitation_accepted boolean NOT NULL DEFAULT FALSE,
+    granted_permission int NOT NULL DEFAULT 0,
     user_name varchar(128),
     normalized_user_name varchar(128),
     email varchar(128),
     normalized_email varchar(128),
-    email_confirmed boolean NOT NULL,
+    email_confirmed boolean NOT NULL DEFAULT FALSE,
     password_hash varchar(256),
     security_stamp varchar(256),
     lockout_end timestamptz,
-    lockout_enabled boolean NOT NULL,
-    access_failed_count int NOT NULL,
+    lockout_enabled boolean NOT NULL DEFAULT FALSE,
+    access_failed_count int NOT NULL DEFAULT 0,
     first_name varchar(128),
     last_name varchar(128),
     is_deleted boolean NOT NULL DEFAULT FALSE
@@ -72,7 +69,7 @@ CREATE TYPE book_details AS (
     publisher varchar(128),
     publish_date timestamp,
     publication_status int,
-    pages_count int,
+    pages_count int
 );
 
 CREATE TABLE books (
@@ -89,6 +86,3 @@ CREATE TABLE books (
 CREATE INDEX idx_books_tenant_id ON books (tenant_id);
 CREATE INDEX idx_books_owner_id ON books (owner_id);
 CREATE INDEX idx_books_created_on_utc ON books (created_on_utc);
-
-
-COMMIT;

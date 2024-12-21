@@ -4,6 +4,7 @@ using Sandbox.FullStackIdentity.DependencyInjection;
 using Sandbox.FullStackIdentity.Domain;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Sandbox.FullStackIdentity.Application;
 
@@ -20,17 +21,19 @@ internal sealed class OrganizationAppService : IOrganizationAppService
     private readonly ILogger<OrganizationAppService> _logger;
 
     public OrganizationAppService(
-        UserManager<User> userManager,
         ITenantValidator tenantValidator,
         ITenantRepository tenantRepository,
         IMultiTenancyContext multiTenancyContext,
-        ILogger<OrganizationAppService> logger)
+        ILogger<OrganizationAppService> logger,
+        IServiceProvider serviceProvider)
     {
-        if (userManager is not AppUserManager appUserManager)
+        // Resolve at runtime to make it possible to run the application without Identity service when not used.
+        // Plus providing better exception message if the services are not registered when they are required.
+        if (serviceProvider.GetService<AppUserManager>() is not AppUserManager appUserManager)
         {
             throw new InvalidOperationException(
                 $"""
-                The '{nameof(IOrganizationAppService)}' requires the '{nameof(AppUserManager)}' implementation of the '{nameof(UserManager<User>)}'.
+                The '{nameof(IOrganizationAppService)}' requires the '{nameof(AppUserManager)}' extension of the '{nameof(UserManager<User>)}'.
                 Consider adding the Identity services followed by the '{nameof(ApplicationServiceCollectionExtensions.AddAppManagers)}' method.
                 """);
         }

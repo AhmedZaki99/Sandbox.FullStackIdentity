@@ -19,7 +19,7 @@ RUN dotnet restore
 FROM restore AS publish
 ARG BUILD_CONFIGURATION=Release
 # Copy source files.
-WORKDIR /repo
+WORKDIR /repo/src
 COPY ["src/Sandbox.FullStackIdentity.Services.Migrator/", "Sandbox.FullStackIdentity.Services.Migrator/"]
 # Publish the app binaries.
 WORKDIR /repo/src/Sandbox.FullStackIdentity.Services.Migrator

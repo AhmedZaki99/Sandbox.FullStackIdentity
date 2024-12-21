@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -10,6 +11,7 @@ using Sandbox.FullStackIdentity.Domain;
 using Sandbox.FullStackIdentity.Persistence;
 using Sandbox.FullStackIdentity.Presentation;
 using Serilog;
+using StackExchange.Redis;
 
 namespace Sandbox.FullStackIdentity.Services.HostApi;
 
@@ -91,6 +93,14 @@ public class Program
             });
 
 
+        // Data protection.
+        builder.Services
+            .AddDataProtection()
+            .SetApplicationName("appName")
+            .PersistKeysToStackExchangeRedis(ConnectionMultiplexer.Connect(applicationOptions.Domains.Redis), "redisKey")
+            .UseEphemeralDataProtectionProvider();
+
+
         // Identity services.
         builder.Services
             .AddIdentityCore<User>(options =>
@@ -138,6 +148,7 @@ public class Program
         var builder = new NpgsqlConnectionStringBuilder
         {
             Host = applicationOptions.Domains.PostgresDb,
+            Database = configuration["POSTGRES_USER"],
             Username = configuration["POSTGRES_USER"],
             Password = configuration["POSTGRES_PASSWORD"]
         };

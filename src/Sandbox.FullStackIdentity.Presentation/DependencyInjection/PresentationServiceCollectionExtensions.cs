@@ -14,7 +14,7 @@ public static class PresentationServiceCollectionExtensions
     /// <returns>The <see cref="AppBuilder"/> to allow chaining up service configuration.</returns>
     public static AppBuilder AddApiServices(this AppBuilder builder, Action<TokenAuthOptions>? configureOptions = null)
     {
-        builder.Services.AddSingleton<IBearerTokenGenerator, JsonWebTokenGenerator>();
+        builder.Services.AddScoped<IBearerTokenGenerator, JsonWebTokenGenerator>();
 
         if (configureOptions is not null)
         {

@@ -1,7 +1,4 @@
 
-BEGIN;
-
-
 INSERT INTO global_configs (key, value) 
 VALUES ('TokenCleanupJob.Cron', '0 * * * *');
 
@@ -15,6 +12,3 @@ VALUES ('a2ce9fa9-1666-4915-b291-c6c825956a19', 'admin', 'ADMIN', 'ahmed.zaki.de
 
 INSERT INTO user_roles (user_id, role_id)
 VALUES ('a2ce9fa9-1666-4915-b291-c6c825956a19', '305b4973-8dfc-48b9-910f-a6f1b843d4ed');
-
-
-COMMIT;

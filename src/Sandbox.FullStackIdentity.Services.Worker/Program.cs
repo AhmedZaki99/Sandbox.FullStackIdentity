@@ -66,6 +66,7 @@ public class Program
         // Background services.
         builder.Services
             .AddAppServices()
+            .AddPostgresRepositories(connectionString)
             .AddEmailSender()
             .AddRedLock([new DnsEndPoint(applicationOptions.Domains.Redis, 6379)])
             .AddBackgroundServices();
@@ -75,8 +76,6 @@ public class Program
 
     private static void ConfigurePipeline(WebApplication app)
     {
-        app.UseAuthorization();
-
         app.MapGet("/health", () => Results.Ok());
     }
 
@@ -86,6 +85,7 @@ public class Program
         var builder = new NpgsqlConnectionStringBuilder
         {
             Host = applicationOptions.Domains.PostgresDb,
+            Database = configuration["POSTGRES_USER"],
             Username = configuration["POSTGRES_USER"],
             Password = configuration["POSTGRES_PASSWORD"]
         };
