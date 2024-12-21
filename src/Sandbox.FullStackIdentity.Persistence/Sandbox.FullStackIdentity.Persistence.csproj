@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Dapper" Version="2.1.35" />
+	<PackageReference Include="Hangfire.NetCore" Version="1.8.17" />
+	<PackageReference Include="Hangfire.PostgreSql" Version="1.20.10" />
+	<PackageReference Include="Npgsql.DependencyInjection" Version="9.0.2" />
+	<PackageReference Include="Serilog.Sinks.Postgresql.Alternative" Version="4.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sandbox.FullStackIdentity.Application\Sandbox.FullStackIdentity.Application.csproj" />
+  </ItemGroup>
+
+</Project>

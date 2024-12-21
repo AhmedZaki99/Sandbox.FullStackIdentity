@@ -1,0 +1,32 @@
+
+name: fullstack-identity
+
+services:
+
+  host-api:
+    pull_policy: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+
+  worker:
+    pull_policy: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+            
+  migrator:
+    pull_policy: always
+    environment: 
+      - DOTNET_ENVIRONMENT=Production
+
+
+secrets:
+  POSTGRES_USER:
+    environment: "POSTGRES_USER"
+  POSTGRES_PASSWORD:
+    environment: "POSTGRES_PASSWORD"
+  Application__Secrets__JwtSigningKey:
+    environment: "JWT_SIGNING_KEY"
+  Application__Secrets__SendgridApiKey:
+    environment: "SENDGRID_API_KEY"
+  Application__Secrets__SendgridVerificationKey:
+    environment: "SENDGRID_VERIFICATION_KEY"

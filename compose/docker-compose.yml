@@ -1,0 +1,105 @@
+
+services:
+
+  host-api:
+    image: ${DOCKER_REGISTRY-}sandbox.fullstack-identity.host-api:latest
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+    env_file:
+      - config-app.env
+    secrets: &app-secrets
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - Application__Secrets__JwtSigningKey
+      - Application__Secrets__SendgridApiKey
+      - Application__Secrets__SendgridVerificationKey
+    networks:
+      internal-network:
+        aliases:
+          - ${API_HOST:-api}
+      shared-network:
+        aliases:
+          - ${API_HOST:-api}
+    restart: unless-stopped
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    image: ${DOCKER_REGISTRY-}sandbox.fullstack-identity.worker:latest
+    environment:
+      ASPNETCORE_HTTP_PORTS: "8080"
+    env_file:
+      - config-app.env
+    secrets: *app-secrets
+    networks:
+      internal-network:
+    restart: unless-stopped
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    deploy:
+      mode: replicated
+      replicas: ${WORKER_REPLICAS:-2}
+      
+  migrator:
+    image: ${DOCKER_REGISTRY-}sandbox.fullstack-identity.migrator:latest
+    secrets: &db-secrets
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER_FILE: "/run/secrets/POSTGRES_USER"
+      POSTGRES_PASSWORD_FILE: "/run/secrets/POSTGRES_PASSWORD"
+    secrets: *db-secrets
+    shm_size: 512mb
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - target: 5432
+        published: ${DATABASE_PORT:-5432}
+    networks:
+      internal-network:
+        aliases:
+          - ${DATABASE_HOST:-db}
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:latest
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis-data:/data
+    networks:
+      internal-network:
+        aliases:
+          - ${REDIS_HOST:-redis}
+    restart: always
+
+      
+volumes:
+  db-data:
+  redis-data:
+
+networks:
+  internal-network:
+  shared-network:
+    name: shared-network
+    driver: bridge

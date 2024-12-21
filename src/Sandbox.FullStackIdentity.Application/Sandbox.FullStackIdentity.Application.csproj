@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Templates\account-invitation-link.en.handlebars" />
+    <EmbeddedResource Include="Resources\Templates\email-confirmation-code.en.handlebars" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Flurl" Version="4.0.0" />
+	<PackageReference Include="Handlebars.Net" Version="2.1.6" />
+	<PackageReference Include="Hangfire.Core" Version="1.8.17" />
+	<PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.0" />
+	<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+	<PackageReference Include="Microsoft.Extensions.FileProviders.Embedded" Version="9.0.0" />
+	<PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.0" />
+	<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sandbox.FullStackIdentity.Contracts\Sandbox.FullStackIdentity.Contracts.csproj" />
+    <ProjectReference Include="..\Sandbox.FullStackIdentity.Domain\Sandbox.FullStackIdentity.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

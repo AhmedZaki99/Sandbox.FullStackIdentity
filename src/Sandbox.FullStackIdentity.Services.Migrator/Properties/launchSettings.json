@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Sandbox.FullStackIdentity.Services.Migrator": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "profiles": {
+    "Start Database": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "host-api": "DoNotStart",
+        "worker": "DoNotStart",
+        "migrator": "DoNotStart",
+        "db": "StartWithoutDebugging",
+        "redis": "StartWithoutDebugging"
+      }
+    },
+    "Run Migrations": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "host-api": "DoNotStart",
+        "worker": "DoNotStart",
+        "migrator": "StartWithoutDebugging",
+        "db": "StartWithoutDebugging",
+        "redis": "DoNotStart"
+      }
+    },
+    "Start Services": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "host-api": "StartDebugging",
+        "worker": "StartDebugging",
+        "migrator": "DoNotStart",
+        "db": "DoNotStart",
+        "redis": "DoNotStart"
+      }
+    },
+    "Start All": {
+      "commandName": "DockerCompose",
+      "commandVersion": "1.0",
+      "serviceActions": {
+        "host-api": "StartDebugging",
+        "worker": "StartDebugging",
+        "migrator": "StartWithoutDebugging",
+        "db": "StartWithoutDebugging",
+        "redis": "StartWithoutDebugging"
+      }
+    }
+  }
+}

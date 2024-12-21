@@ -1,0 +1,40 @@
+
+name: fullstack-identity-dev
+
+services:
+
+  host-api:
+    pull_policy: build
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - target: 8080
+        published: ${API_DEV_PORT:-8080}
+
+  worker:
+    pull_policy: build
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      
+  migrator:
+    pull_policy: build
+    environment: 
+      - DOTNET_ENVIRONMENT=Development
+            
+  redis:
+    ports:
+      - target: 6379
+        published: ${REDIS_DEV_PORT:-6379}
+      
+        
+secrets:
+  POSTGRES_USER:
+    file: ./secrets/POSTGRES_USER.txt
+  POSTGRES_PASSWORD:
+    file: ./secrets/POSTGRES_PASSWORD.txt
+  Application__Secrets__JwtSigningKey:
+    file: ./secrets/JWT_SIGNING_KEY.txt
+  Application__Secrets__SendgridApiKey:
+    file: ./secrets/SENDGRID_API_KEY.txt
+  Application__Secrets__SendgridVerificationKey:
+    file: ./secrets/SENDGRID_VERIFICATION_KEY.txt
