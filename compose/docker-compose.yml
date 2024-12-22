@@ -6,13 +6,18 @@ services:
     environment:
       ASPNETCORE_HTTP_PORTS: "8080"
     env_file:
-      - config-app.env
+      - app.env
     secrets: &app-secrets
       - POSTGRES_USER
       - POSTGRES_PASSWORD
       - Application__Secrets__JwtSigningKey
       - Application__Secrets__SendgridApiKey
       - Application__Secrets__SendgridVerificationKey
+    volumes:
+      - type: bind
+        source: ${CERTIFICATES_DIRECTORY:?certificates_directory_required}
+        target: ${CERTIFICATES_DIRECTORY_TARGET:-/app/certs}
+        read_only: true
     networks:
       default:
         aliases:
@@ -34,7 +39,7 @@ services:
     environment:
       ASPNETCORE_HTTP_PORTS: "8080"
     env_file:
-      - config-app.env
+      - app.env
     secrets: *app-secrets
     restart: unless-stopped
     depends_on:
@@ -51,7 +56,7 @@ services:
   migrator:
     image: ${DOCKER_REGISTRY-}sandbox.fullstack-identity.migrator:latest
     env_file:
-      - config-app.env
+      - app.env
     secrets: &db-secrets
       - POSTGRES_USER
       - POSTGRES_PASSWORD

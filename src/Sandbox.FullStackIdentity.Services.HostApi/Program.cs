@@ -1,3 +1,4 @@
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -94,11 +95,16 @@ public class Program
 
 
         // Data protection.
+        var dataProtectionOptions = builder.Configuration.GetSection(DataProtectionOptions.Key).Get<DataProtectionOptions>()
+            ?? throw new InvalidOperationException($"The required '{DataProtectionOptions.Key}' is not found in configuration.");
+
+        var cert = X509CertificateLoader.LoadPkcs12FromFile(dataProtectionOptions.CertPath, null);
         builder.Services
             .AddDataProtection()
-            .SetApplicationName("appName")
-            .PersistKeysToStackExchangeRedis(ConnectionMultiplexer.Connect(applicationOptions.Domains.Redis), "redisKey")
-            .UseEphemeralDataProtectionProvider();
+            .SetApplicationName(dataProtectionOptions.AppName)
+            .PersistKeysToStackExchangeRedis(ConnectionMultiplexer.Connect(applicationOptions.Domains.Redis), dataProtectionOptions.StoreKey)
+            .ProtectKeysWithCertificate(cert)
+            .UnprotectKeysWithAnyCertificate(cert);
 
 
         // Identity services.

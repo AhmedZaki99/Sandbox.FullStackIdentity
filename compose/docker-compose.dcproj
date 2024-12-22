@@ -6,12 +6,11 @@
     <DockerPublishLocally>False</DockerPublishLocally>
     <ProjectGuid>e0e06b3c-2364-4ed5-9b25-4d7f60a63907</ProjectGuid>
     <AdditionalComposeFilePaths>docker-compose.build.yml</AdditionalComposeFilePaths>
-	<DockerComposeProjectName>fullstack-identity-debug</DockerComposeProjectName>
+    <DockerComposeProjectName>fullstack-identity-debug</DockerComposeProjectName>
   </PropertyGroup>
   <ItemGroup>
     <None Include=".env" />
-    <None Include="config-app.env" />
-    <None Include="config-cert.env" />
+    <None Include="app.env" />
     <None Include="docker-compose.yml" />
     <None Include="docker-compose.override.yml">
       <DependentUpon>docker-compose.yml</DependentUpon>
