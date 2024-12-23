@@ -116,7 +116,7 @@ internal sealed class RoleStore : IRoleStore<Role>
             """
             SELECT * FROM roles WHERE id = @roleId LIMIT 1
             """,
-            new { roleId });
+            new { roleId = new Guid(roleId) });
     }
 
     public async Task<Role?> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)

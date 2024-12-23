@@ -55,9 +55,10 @@ internal sealed class BookAppService : IBookAppService
     }
 
     /// <inheritdoc/>
-    public async Task<Result<BookResponse>> CreateAsync(BookRequest request, CancellationToken cancellationToken = default)
+    public async Task<Result<BookResponse>> CreateAsync(Guid ownerId, BookRequest request, CancellationToken cancellationToken = default)
     {
         var book = request.ToBook();
+        book.OwnerId = ownerId;
 
         var result = await _bookRepository.CreateAsync(book, cancellationToken);
         if (result.IsFailed)

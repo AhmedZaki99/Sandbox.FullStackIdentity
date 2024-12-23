@@ -82,8 +82,13 @@ public sealed class BooksController : ControllerBase
         {
             return Forbid("You don't have permission to write to your organization's data.");
         }
+        var userId = User.GetId();
+        if (userId is null)
+        {
+            return Unauthorized("Invalid or expired bearer token.");
+        }
 
-        var result = await _bookAppService.CreateAsync(request, cancellationToken);
+        var result = await _bookAppService.CreateAsync(userId.Value, request, cancellationToken);
         if (result.IsFailed)
         {
             foreach (var error in result.Errors)

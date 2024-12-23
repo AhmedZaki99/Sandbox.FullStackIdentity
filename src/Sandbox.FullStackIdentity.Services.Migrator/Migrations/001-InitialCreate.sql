@@ -64,11 +64,14 @@ CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens (user_id);
 CREATE UNIQUE INDEX idx_refresh_tokens_token ON refresh_tokens (token);
 
 
+-- Required since Npgsql doesn't have support for int to enum conversion within composite types.
+CREATE TYPE publication_status AS ENUM ('draft', 'published');
+
 CREATE TYPE book_details AS (
     author varchar(128),
     publisher varchar(128),
     publish_date timestamp,
-    publication_status int,
+    publication_status publication_status,
     pages_count int
 );
 

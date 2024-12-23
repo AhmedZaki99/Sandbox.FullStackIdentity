@@ -157,7 +157,7 @@ internal sealed class BookRepository : IBookRepository
                 @{nameof(Book.TenantId)},
                 @{nameof(Book.OwnerId)},
                 @{nameof(Book.Title)},
-                @{nameof(Book.Details)}
+                @{nameof(Book.Details)})
             """,
             book);
 
@@ -178,7 +178,7 @@ internal sealed class BookRepository : IBookRepository
             UPDATE books 
             SET (title, details, is_deleted) = (
                 @{nameof(Book.Title)}, 
-                @{nameof(Book.Details)}),
+                @{nameof(Book.Details)},
                 @{nameof(Book.IsDeleted)})
             WHERE {GetBaseCondition(nameof(Book.TenantId))} AND id = @{nameof(Book.Id)}
             """,

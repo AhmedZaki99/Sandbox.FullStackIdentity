@@ -177,7 +177,7 @@ internal sealed class UserStore : IUserStore<User>, ISoftUserStore<User>, IUserE
             $"""
             SELECT * FROM users WHERE is_deleted = FALSE AND id = @userId LIMIT 1
             """,
-            new { userId });
+            new { userId = new Guid(userId) });
     }
 
     public async Task<User?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken = default)
