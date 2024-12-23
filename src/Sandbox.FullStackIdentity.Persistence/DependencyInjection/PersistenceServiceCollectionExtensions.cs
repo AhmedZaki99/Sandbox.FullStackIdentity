@@ -30,10 +30,10 @@ public static class PersistenceServiceCollectionExtensions
         // PostgreSQL database and Dapper.
         builder.Services.AddNpgsqlDataSource(connectionString, builder =>
         {
-            builder.MapComposite<BookDetails>();
-
-            // Required since Npgsql doesn't have support for int to enum conversion within composite types.
+            // This enum is required since Npgsql doesn't have support for int to enum conversion within composite types.
             builder.MapEnum<PublicationStatus>();
+
+            builder.MapComposite<BookDetails>();
         });
 
         Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;

@@ -80,7 +80,6 @@ public class Program
             })
             .AddJwtBearer(options =>
             {
-                options.MapInboundClaims = false;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
@@ -115,9 +114,6 @@ public class Program
                 options.SignIn.RequireConfirmedEmail = true;
                 options.User.RequireUniqueEmail = true;
                 options.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
-                options.ClaimsIdentity.UserIdClaimType = JwtRegisteredClaimNames.Sub;
-                options.ClaimsIdentity.UserNameClaimType = JwtRegisteredClaimNames.Name;
-                options.ClaimsIdentity.EmailClaimType = JwtRegisteredClaimNames.Email;
             })
             .AddDefaultTokenProviders()
             .AddAppManagers();

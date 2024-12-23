@@ -35,7 +35,7 @@ public sealed class BooksController : ControllerBase
     {
         if (!ReadPermissionGranted(User))
         {
-            return Forbid("You don't have permission to read your organization's data.");
+            return Unauthorized("You don't have permission to read your organization's data.");
         }
         var ownerId = ownedOnly ? User.GetId() : null;
 
@@ -51,7 +51,7 @@ public sealed class BooksController : ControllerBase
     {
         if (!ReadPermissionGranted(User))
         {
-            return Forbid("You don't have permission to read your organization's data.");
+            return Unauthorized("You don't have permission to read your organization's data.");
         }
         var ownerId = ownedOnly ? User.GetId() : null;
 
@@ -63,7 +63,7 @@ public sealed class BooksController : ControllerBase
     {
         if (!ReadPermissionGranted(User))
         {
-            return Forbid("You don't have permission to read your organization's data.");
+            return Unauthorized("You don't have permission to read your organization's data.");
         }
 
         var book = await _bookAppService.GetAsync(bookId, cancellationToken);
@@ -80,7 +80,7 @@ public sealed class BooksController : ControllerBase
     {
         if (!WritePermissionGranted(User))
         {
-            return Forbid("You don't have permission to write to your organization's data.");
+            return Unauthorized("You don't have permission to write to your organization's data.");
         }
         var userId = User.GetId();
         if (userId is null)
@@ -105,7 +105,7 @@ public sealed class BooksController : ControllerBase
     {
         if (!WritePermissionGranted(User))
         {
-            return Forbid("You don't have permission to write to your organization's data.");
+            return Unauthorized("You don't have permission to write to your organization's data.");
         }
 
         var result = await _bookAppService.UpdateAsync(bookId, request, cancellationToken);
@@ -125,7 +125,7 @@ public sealed class BooksController : ControllerBase
     {
         if (!WritePermissionGranted(User))
         {
-            return Forbid("You don't have permission to write to your organization's data.");
+            return Unauthorized("You don't have permission to write to your organization's data.");
         }
 
         var result = await _bookAppService.DeleteAsync(bookId, cancellationToken);

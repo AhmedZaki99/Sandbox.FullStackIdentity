@@ -35,7 +35,7 @@ internal sealed class AccountEmailsAppService : IAccountEmailsAppService
     public async Task<Result> SendEmailConfirmationCodeAsync(User user, string code, CancellationToken cancellationToken = default)
     {
         var emailMessage = await RenderEmailTemplateAsync(
-            ResourceLocator.EN.EmailConfirmationCodeTemplate, 
+            ResourceLocator.Templates.EN.EmailConfirmationCode, 
             new
             {
                 userName = user.UserName,
@@ -65,7 +65,7 @@ internal sealed class AccountEmailsAppService : IAccountEmailsAppService
             });
 
         var emailMessage = await RenderEmailTemplateAsync(
-            ResourceLocator.EN.EmailConfirmationCodeTemplate,
+            ResourceLocator.Templates.EN.AccountInvitationLink,
             new
             {
                 organizationName = tenant.Handle,

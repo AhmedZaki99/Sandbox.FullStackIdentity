@@ -5,29 +5,27 @@ namespace Sandbox.FullStackIdentity.Application.Internal;
 
 internal static class ResourceLocator
 {
-
-    private static readonly Assembly _currentAssembly = typeof(ResourceLocator).Assembly;
-
-    public static Task<Stream> ReadResourceFileAsync(string fileName, CancellationToken cancellationToken = default)
+    public static Task<Stream> ReadResourceFileAsync(string filePath, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var resourcePath = Path.Combine(ResourcesBasePath, fileName);
-        var embeddedProvider = new EmbeddedFileProvider(_currentAssembly);
+        var embeddedProvider = new EmbeddedFileProvider(Assembly.GetExecutingAssembly());
 
-        var fileStream = embeddedProvider.GetFileInfo(resourcePath).CreateReadStream();
+        var fileStream = embeddedProvider.GetFileInfo(filePath).CreateReadStream();
         return Task.FromResult(fileStream);
     }
 
 
+    public const string ResourcesDirectory = "Resources";
 
-    public const string ResourcesBasePath = "Resources";
-    public const string TemplatesSubPath = "Templates";
-
-    public static class EN
+    public static class Templates
     {
-        public const string EmailConfirmationCodeTemplate = TemplatesSubPath + "/email-confirmation-code.en.handlebars";
-        public const string AccountInvitationLinkTemplate = TemplatesSubPath + "/account-invitation-link.en.handlebars";
-    }
+        public static readonly string BasePath = Path.Combine(ResourcesDirectory, "Templates");
 
+        public static class EN
+        {
+            public static readonly string EmailConfirmationCode = Path.Combine(BasePath, "en_email-confirmation-code.handlebars");
+            public static readonly string AccountInvitationLink = Path.Combine(BasePath, "en_account-invitation-link.handlebars");
+        }
+    }
 }

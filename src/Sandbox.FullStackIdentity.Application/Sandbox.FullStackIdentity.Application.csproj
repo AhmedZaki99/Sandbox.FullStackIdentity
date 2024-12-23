@@ -7,16 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Resources\*" />
+    <None Remove="Resources\**\*" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\*" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\Templates\account-invitation-link.en.handlebars" />
-    <EmbeddedResource Include="Resources\Templates\email-confirmation-code.en.handlebars" />
+    <EmbeddedResource Include="Resources\**\*" />
   </ItemGroup>
 
   <ItemGroup>
