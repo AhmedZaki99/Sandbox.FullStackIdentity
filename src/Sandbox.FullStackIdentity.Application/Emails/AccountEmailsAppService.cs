@@ -1,8 +1,4 @@
 ﻿using FluentResults;
-using Flurl;
-using HandlebarsDotNet;
-using Microsoft.Extensions.Options;
-using Sandbox.FullStackIdentity.Application.Internal;
 using Sandbox.FullStackIdentity.Domain;
 
 namespace Sandbox.FullStackIdentity.Application;
@@ -15,16 +11,13 @@ internal sealed class AccountEmailsAppService : IAccountEmailsAppService
 
     private readonly IEmailSender _emailSender;
     private readonly ITenantRepository _tenantRepository;
-    private readonly IOptions<ApplicationOptions> _applicationOptions;
 
     public AccountEmailsAppService(
         IEmailSender emailSender,
-        ITenantRepository tenantRepository,
-        IOptions<ApplicationOptions> applicationOptions)
+        ITenantRepository tenantRepository)
     {
         _emailSender = emailSender;
         _tenantRepository = tenantRepository;
-        _applicationOptions = applicationOptions;
     }
 
     #endregion
@@ -34,21 +27,18 @@ internal sealed class AccountEmailsAppService : IAccountEmailsAppService
     /// <inheritdoc/>
     public async Task<Result> SendEmailConfirmationCodeAsync(User user, string code, CancellationToken cancellationToken = default)
     {
-        var emailMessage = await RenderEmailTemplateAsync(
-            ResourceLocator.Templates.EN.EmailConfirmationCode, 
-            new
-            {
-                userName = user.UserName,
-                code
-            }, 
-            cancellationToken);
+        var emailData = new
+        {
+            name = user.UserName,
+            code
+        };
 
-        await _emailSender.SendAsync(user.Email, "Confirm your email", emailMessage, cancellationToken);
+        await _emailSender.SendAsync(user.Email, EmailTemplateKeys.ConfirmEmail, emailData, cancellationToken);
         return Result.Ok();
     }
     
     /// <inheritdoc/>
-    public async Task<Result> SendInvitationLinkAsync(User user, string linkPath, string token, int tokenExpirationDays, CancellationToken cancellationToken = default)
+    public async Task<Result> SendInvitationLinkAsync(User user, string token, int tokenExpirationDays, CancellationToken cancellationToken = default)
     {
         var tenant = await _tenantRepository.GetAsync(cancellationToken: cancellationToken);
         if (tenant is null)
@@ -56,38 +46,16 @@ internal sealed class AccountEmailsAppService : IAccountEmailsAppService
             return new NotFoundError("Organization's tenant not found");
         }
 
-        var linkUrl = Url
-            .Combine(_applicationOptions.Value.Domains.WebClient, linkPath)
-            .AppendQueryParam(new
-            {
-                userId = user.Id,
-                token 
-            });
+        var emailData = new
+        {
+            organization = tenant.Handle,
+            expiration = tokenExpirationDays,
+            userId = user.Id,
+            token,
+        };
 
-        var emailMessage = await RenderEmailTemplateAsync(
-            ResourceLocator.Templates.EN.AccountInvitationLink,
-            new
-            {
-                organizationName = tenant.Handle,
-                invitationLink = linkUrl,
-                expirationDays = tokenExpirationDays
-            },
-            cancellationToken);
-
-        await _emailSender.SendAsync(user.Email, "You have been invited to create an account", emailMessage, cancellationToken);
+        await _emailSender.SendAsync(user.Email, EmailTemplateKeys.AcceptInvitation, emailData, cancellationToken);
         return Result.Ok();
-    }
-
-    private static async Task<string> RenderEmailTemplateAsync(string templateResourceFile, object parameters, CancellationToken cancellationToken)
-    {
-        await using var emailTemplateStream = await ResourceLocator.ReadResourceFileAsync(templateResourceFile, cancellationToken);
-
-        using var reader = new StreamReader(emailTemplateStream);
-
-        var emailTemplateContent = await reader.ReadToEndAsync(cancellationToken);
-        var emailTemplateRenderer = Handlebars.Compile(emailTemplateContent);
-
-        return emailTemplateRenderer(parameters);
     }
 
     #endregion

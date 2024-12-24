@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="SendGrid.Extensions.DependencyInjection" Version="1.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Sandbox.FullStackIdentity.Application\Sandbox.FullStackIdentity.Application.csproj" />
   </ItemGroup>
 

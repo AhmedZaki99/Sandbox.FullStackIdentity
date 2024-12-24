@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Sandbox.FullStackIdentity.Application;
 using Sandbox.FullStackIdentity.Infrastructure;
+using SendGrid.Extensions.DependencyInjection;
 
 namespace Sandbox.FullStackIdentity.DependencyInjection;
 
@@ -15,8 +17,13 @@ public static class InfrastructureServiceCollectionExtensions
     /// <returns>The <see cref="AppBuilder"/> to allow chaining up service configuration.</returns>
     public static AppBuilder AddEmailSender(this AppBuilder builder, string sendGridApiKey, Action<EmailSenderOptions>? configureOptions = null)
     {
-        builder.Services.AddTransient<IEmailSender, LoggerEmailSender>();
-        builder.Services.AddKeyedTransient<IEmailSender, SendGridEmailSender>("empty");
+        builder.Services.AddSendGrid((sp, options) =>
+        {
+            options.ApiKey = sendGridApiKey;
+            options.ReliabilitySettings = sp.GetService<IOptions<EmailSenderOptions>>()?.Value.ReliabilitySettings ?? new();
+        });
+
+        builder.Services.AddTransient<IEmailSender, SendGridEmailSender>();
 
 
         if (configureOptions is not null)

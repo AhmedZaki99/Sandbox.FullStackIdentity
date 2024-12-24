@@ -9,7 +9,4 @@ public sealed class InviteRequest
     [EmailAddress]
     public string Email { get; set; } = null!;
     public OrganizationPermission GivenPermission { get; set; }
-
-    [Required]
-    public string InvitationLinkPath { get; set; } = null!;
 }

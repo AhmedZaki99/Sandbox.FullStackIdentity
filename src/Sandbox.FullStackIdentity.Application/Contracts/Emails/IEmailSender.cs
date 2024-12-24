@@ -2,5 +2,6 @@
 
 public interface IEmailSender
 {
-    Task SendAsync(string email, string subject, string message, CancellationToken cancellationToken = default);
+    Task SendAsync(string email, string subject, string htmlMessage, CancellationToken cancellationToken = default);
+    Task SendAsync(string email, string templateKey, object? templateData = null, CancellationToken cancellationToken = default);
 }

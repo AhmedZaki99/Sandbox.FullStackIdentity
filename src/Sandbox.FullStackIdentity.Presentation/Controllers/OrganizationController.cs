@@ -100,13 +100,7 @@ public sealed class OrganizationController : ControllerBase
 
         var codeExpirationDays = (int)Math.Floor(_dataProtectionTokenProviderOptions.Value.TokenLifespan.TotalDays);
 
-        await _accountEmailsAppService.SendInvitationLinkAsync(
-            user, 
-            request.InvitationLinkPath, 
-            code,
-            codeExpirationDays,
-            cancellationToken);
-
+        await _accountEmailsAppService.SendInvitationLinkAsync(user, code, codeExpirationDays, cancellationToken);
         return Ok();
     }
 
