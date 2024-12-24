@@ -1,9 +1,9 @@
-﻿using Sandbox.FullStackIdentity.Application;
-using Sandbox.FullStackIdentity.Domain;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Internal;
+using Sandbox.FullStackIdentity.Application;
+using Sandbox.FullStackIdentity.Domain;
 
 namespace Sandbox.FullStackIdentity.DependencyInjection;
 
@@ -13,9 +13,8 @@ public static class ApplicationServiceCollectionExtensions
     /// <summary>
     /// Adds application services to the specified <see cref="IServiceCollection"/>.
     /// </summary>
-    /// <param name="configureOptions">A delegate to configure <see cref="ApplicationOptions"/>.</param>
     /// <returns>An <see cref="AppBuilder"/> that can be used to further configure application services.</returns>
-    public static AppBuilder AddAppServices(this IServiceCollection services, Action<ApplicationOptions>? configureOptions = null)
+    public static AppBuilder AddAppServices(this IServiceCollection services)
     {
         services.TryAddSingleton<ISystemClock, SystemClock>();
 
@@ -27,10 +26,6 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IAccountEmailsAppService, AccountEmailsAppService>();
         services.AddScoped<ITokenCleanupAppService, TokenCleanupAppService>();
 
-        if (configureOptions is not null)
-        {
-            services.Configure(configureOptions);
-        }
         return new(services);
     }
 

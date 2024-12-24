@@ -1,8 +1,12 @@
-﻿namespace Sandbox.FullStackIdentity.Background;
+﻿using Sandbox.FullStackIdentity.Application;
 
-public sealed class LockingOptions
+namespace Sandbox.FullStackIdentity.Background;
+
+public sealed class LockingOptions : IKeyedOptions
 {
     public const string Key = "Locking";
+    string IKeyedOptions.Key => Key;
+
 
     public TimeSpan LockExpiry { get; set; } = TimeSpan.FromSeconds(30);
     public TimeSpan DefaultWaitTime { get; set; } = TimeSpan.FromSeconds(5);

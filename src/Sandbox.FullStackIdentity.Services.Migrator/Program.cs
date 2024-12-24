@@ -41,7 +41,7 @@ internal class Program
     {
         var builder = new NpgsqlConnectionStringBuilder
         {
-            Host = configuration["Application:Domains:PostgresDb"],
+            Host = configuration["DATABASE_HOST"],
             Database = configuration["POSTGRES_USER"],
             Username = configuration["POSTGRES_USER"],
             Password = configuration["POSTGRES_PASSWORD"]

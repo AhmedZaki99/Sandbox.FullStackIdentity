@@ -26,7 +26,6 @@ public static class BackgroundServiceCollectionExtensions
             RedLockFactory.Create(endPoints, sp.GetRedLockRetryConfiguration(), sp.GetService<ILoggerFactory>())
         );
 
-        // Configure Locking Options, if provided.
         if (configureOptions is not null)
         {
             builder.Services.Configure(configureOptions);

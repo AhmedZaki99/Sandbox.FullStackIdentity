@@ -7,7 +7,6 @@ using Microsoft.Extensions.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Sandbox.FullStackIdentity.Application;
 using Sandbox.FullStackIdentity.Contracts;
 using Sandbox.FullStackIdentity.Domain;
 
@@ -21,23 +20,23 @@ internal sealed class JsonWebTokenGenerator : IBearerTokenGenerator
     private readonly UserManager<User> _userManager;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly ISystemClock _systemClock;
+    private readonly TokenAuthSecrets _tokenAuthSecrets;
     private readonly IOptions<TokenAuthOptions> _tokenAuthOptions;
-    private readonly IOptions<ApplicationOptions> _applicationOptions;
     private readonly ILogger<JsonWebTokenGenerator> _logger;
 
     public JsonWebTokenGenerator(
         UserManager<User> userManager,
         IRefreshTokenRepository refreshTokenRepository,
         ISystemClock systemClock,
+        TokenAuthSecrets tokenAuthSecrets,
         IOptions<TokenAuthOptions> tokenAuthOptions,
-        IOptions<ApplicationOptions> applicationOptions,
         ILogger<JsonWebTokenGenerator> logger)
     {
         _userManager = userManager;
         _refreshTokenRepository = refreshTokenRepository;
         _systemClock = systemClock;
+        _tokenAuthSecrets = tokenAuthSecrets;
         _tokenAuthOptions = tokenAuthOptions;
-        _applicationOptions = applicationOptions;
         _logger = logger;
     }
 
@@ -107,7 +106,7 @@ internal sealed class JsonWebTokenGenerator : IBearerTokenGenerator
         var expirationMinutes = Math.Max(_tokenAuthOptions.Value.AccessTokenExpirationMinutes, TokenAuthOptions.DefaultAccessTokenExpirationMinutes);
         var expirationTime = _systemClock.UtcNow.UtcDateTime.AddMinutes(expirationMinutes);
 
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_applicationOptions.Value.Secrets.JwtSigningKey));
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_tokenAuthSecrets.JwtSigningKey));
 
         var tokenHandler = new JwtSecurityTokenHandler();
         var tokenDescriptor = new SecurityTokenDescriptor

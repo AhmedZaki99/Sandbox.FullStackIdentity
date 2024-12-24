@@ -1,11 +1,13 @@
-﻿using Serilog.Events;
+﻿using Sandbox.FullStackIdentity.Application;
+using Serilog.Events;
 using Serilog.Sinks.PostgreSQL.ColumnWriters;
 
 namespace Sandbox.FullStackIdentity.Persistence;
 
-public sealed class SerilogSqlOptions
+public sealed class SerilogSqlOptions : IKeyedOptions
 {
     public const string Key = "SerilogSQL";
+    string IKeyedOptions.Key => Key;
 
 
     public string ConnectionString { get; set; }

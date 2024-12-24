@@ -1,6 +1,10 @@
-﻿namespace Sandbox.FullStackIdentity.Services.HostApi;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-public static class BuilderConfigurationExtensions
+namespace Sandbox.FullStackIdentity.DependencyInjection;
+
+public static class ApplicationBuilderExtensions
 {
 
     public static IHostApplicationBuilder ConfigureOptions<T>(this IHostApplicationBuilder builder, string optionsKey)

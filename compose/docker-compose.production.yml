@@ -24,9 +24,9 @@ secrets:
     environment: "POSTGRES_USER"
   POSTGRES_PASSWORD:
     environment: "POSTGRES_PASSWORD"
-  Application__Secrets__JwtSigningKey:
+  JWT_SIGNING_KEY:
     environment: "JWT_SIGNING_KEY"
-  Application__Secrets__SendgridApiKey:
+  SENDGRID_API_KEY:
     environment: "SENDGRID_API_KEY"
-  Application__Secrets__SendgridVerificationKey:
+  SENDGRID_VERIFICATION_KEY:
     environment: "SENDGRID_VERIFICATION_KEY"

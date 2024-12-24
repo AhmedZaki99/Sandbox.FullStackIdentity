@@ -32,9 +32,9 @@ secrets:
     file: ./secrets/POSTGRES_USER.txt
   POSTGRES_PASSWORD:
     file: ./secrets/POSTGRES_PASSWORD.txt
-  Application__Secrets__JwtSigningKey:
+  JWT_SIGNING_KEY:
     file: ./secrets/JWT_SIGNING_KEY.txt
-  Application__Secrets__SendgridApiKey:
+  SENDGRID_API_KEY:
     file: ./secrets/SENDGRID_API_KEY.txt
-  Application__Secrets__SendgridVerificationKey:
+  SENDGRID_VERIFICATION_KEY:
     file: ./secrets/SENDGRID_VERIFICATION_KEY.txt

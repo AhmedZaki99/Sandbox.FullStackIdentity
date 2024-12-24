@@ -3,12 +3,11 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
-using Sandbox.FullStackIdentity.Application;
 using Sandbox.FullStackIdentity.DependencyInjection;
 using Sandbox.FullStackIdentity.Domain;
+using Sandbox.FullStackIdentity.Infrastructure;
 using Sandbox.FullStackIdentity.Persistence;
 using Sandbox.FullStackIdentity.Presentation;
 using Serilog;
@@ -53,10 +52,14 @@ public class Program
     {
         // Configuration binding.
         builder
-            .ConfigureOptions<ApplicationOptions>(ApplicationOptions.Key, out var applicationOptions)
+            .ConfigureOptions<EmailSenderOptions>(EmailSenderOptions.Key)
             .ConfigureOptions<TokenAuthOptions>(TokenAuthOptions.Key, out var tokenAuthOptions);
 
-        var connectionString = GetDatabaseConnectionString(builder.Configuration, applicationOptions);
+        var redisHost = builder.Configuration.GetRequiredValue("REDIS_HOST");
+        var jwtSigningKey = builder.Configuration.GetRequiredValue("JWT_SIGNING_KEY");
+        var sendGridApiKey = builder.Configuration.GetRequiredValue("SENDGRID_API_KEY");
+
+        var connectionString = GetDatabaseConnectionString(builder.Configuration);
 
 
         // Logging services.
@@ -82,26 +85,27 @@ public class Program
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
                     ValidIssuer = tokenAuthOptions.Issuer,
                     ValidAudience = tokenAuthOptions.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(applicationOptions.Secrets.JwtSigningKey))
+                    ValidateIssuer = tokenAuthOptions.Issuer is not null,
+                    ValidateAudience = tokenAuthOptions.Audience is not null,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSigningKey))
                 };
             });
 
 
         // Data protection.
-        var dataProtectionOptions = builder.Configuration.GetSection(DataProtectionOptions.Key).Get<DataProtectionOptions>()
-            ?? throw new InvalidOperationException($"The required '{DataProtectionOptions.Key}' is not found in configuration.");
+        var dataProtectionOptions = builder.Configuration
+            .GetRequiredObject<DataProtectionOptions>(DataProtectionOptions.Key)
+            .RequireProperty(o => o.CertPath);
 
         var cert = X509CertificateLoader.LoadPkcs12FromFile(dataProtectionOptions.CertPath, null);
         builder.Services
             .AddDataProtection()
             .SetApplicationName(dataProtectionOptions.AppName)
-            .PersistKeysToStackExchangeRedis(ConnectionMultiplexer.Connect(applicationOptions.Domains.Redis), dataProtectionOptions.StoreKey)
+            .PersistKeysToStackExchangeRedis(ConnectionMultiplexer.Connect(redisHost), dataProtectionOptions.StoreKey)
             .ProtectKeysWithCertificate(cert)
             .UnprotectKeysWithAnyCertificate(cert);
 
@@ -123,8 +127,8 @@ public class Program
         builder.Services
             .AddAppServices()
             .AddPostgresRepositories(connectionString)
-            .AddEmailSender()
-            .AddApiServices()
+            .AddEmailSender(sendGridApiKey)
+            .AddApiServices(jwtSigningKey)
             .AddControllersAndFilters();
 
         builder.Services.AddOpenApi();
@@ -145,11 +149,11 @@ public class Program
     }
 
 
-    private static string GetDatabaseConnectionString(ConfigurationManager configuration, ApplicationOptions applicationOptions)
+    private static string GetDatabaseConnectionString(ConfigurationManager configuration)
     {
         var builder = new NpgsqlConnectionStringBuilder
         {
-            Host = applicationOptions.Domains.PostgresDb,
+            Host = configuration["DATABASE_HOST"],
             Database = configuration["POSTGRES_USER"],
             Username = configuration["POSTGRES_USER"],
             Password = configuration["POSTGRES_PASSWORD"]

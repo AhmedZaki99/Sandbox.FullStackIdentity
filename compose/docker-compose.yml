@@ -10,9 +10,9 @@ services:
     secrets: &app-secrets
       - POSTGRES_USER
       - POSTGRES_PASSWORD
-      - Application__Secrets__JwtSigningKey
-      - Application__Secrets__SendgridApiKey
-      - Application__Secrets__SendgridVerificationKey
+      - JWT_SIGNING_KEY
+      - SENDGRID_API_KEY
+      - SENDGRID_VERIFICATION_KEY
     volumes:
       - type: bind
         source: ${CERTIFICATES_DIRECTORY:?certificates_directory_required}

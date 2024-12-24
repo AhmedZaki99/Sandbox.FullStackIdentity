@@ -1,9 +1,9 @@
 using System.Net;
 using Hangfire;
 using Npgsql;
-using Sandbox.FullStackIdentity.Application;
 using Sandbox.FullStackIdentity.Background;
 using Sandbox.FullStackIdentity.DependencyInjection;
+using Sandbox.FullStackIdentity.Infrastructure;
 using Sandbox.FullStackIdentity.Persistence;
 using Serilog;
 
@@ -46,10 +46,13 @@ public class Program
     {
         // Configuration binding.
         builder
-            .ConfigureOptions<ApplicationOptions>(ApplicationOptions.Key, out var applicationOptions)
+            .ConfigureOptions<EmailSenderOptions>(EmailSenderOptions.Key)
             .ConfigureOptions<LockingOptions>(LockingOptions.Key);
 
-        var connectionString = GetDatabaseConnectionString(builder.Configuration, applicationOptions);
+        var redisHost = builder.Configuration.GetRequiredValue("REDIS_HOST");
+        var sendGridApiKey = builder.Configuration.GetRequiredValue("SENDGRID_API_KEY");
+
+        var connectionString = GetDatabaseConnectionString(builder.Configuration);
 
 
         // Logging services.
@@ -67,8 +70,8 @@ public class Program
         builder.Services
             .AddAppServices()
             .AddPostgresRepositories(connectionString)
-            .AddEmailSender()
-            .AddRedLock([new DnsEndPoint(applicationOptions.Domains.Redis, 6379)])
+            .AddEmailSender(sendGridApiKey)
+            .AddRedLock([new DnsEndPoint(redisHost, 6379)])
             .AddBackgroundServices();
 
         builder.Services.AddHangfireServer();
@@ -80,11 +83,11 @@ public class Program
     }
 
 
-    private static string GetDatabaseConnectionString(ConfigurationManager configuration, ApplicationOptions applicationOptions)
+    private static string GetDatabaseConnectionString(ConfigurationManager configuration)
     {
         var builder = new NpgsqlConnectionStringBuilder
         {
-            Host = applicationOptions.Domains.PostgresDb,
+            Host = configuration["DATABASE_HOST"],
             Database = configuration["POSTGRES_USER"],
             Username = configuration["POSTGRES_USER"],
             Password = configuration["POSTGRES_PASSWORD"]

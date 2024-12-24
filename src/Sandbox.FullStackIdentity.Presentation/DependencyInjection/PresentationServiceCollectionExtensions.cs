@@ -10,10 +10,13 @@ public static class PresentationServiceCollectionExtensions
     /// <summary>
     /// Adds api helper services to the specified <see cref="IServiceCollection"/>.
     /// </summary>
-    /// <param name="configureOptions">A delegate to configure <see cref="JwtAuthOptions"/>.</param>
+    /// <param name="jwtSigningKey">The JWT signing key.</param
+    /// <param name="configureOptions">A delegate to configure <see cref="TokenAuthOptions"/>.</param>
     /// <returns>The <see cref="AppBuilder"/> to allow chaining up service configuration.</returns>
-    public static AppBuilder AddApiServices(this AppBuilder builder, Action<TokenAuthOptions>? configureOptions = null)
+    public static AppBuilder AddApiServices(this AppBuilder builder, string jwtSigningKey, Action<TokenAuthOptions>? configureOptions = null)
     {
+        builder.Services.AddSingleton(new TokenAuthSecrets(jwtSigningKey));
+
         builder.Services.AddScoped<IBearerTokenGenerator, JsonWebTokenGenerator>();
 
         if (configureOptions is not null)
