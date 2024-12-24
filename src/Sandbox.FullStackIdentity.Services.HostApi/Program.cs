@@ -52,8 +52,10 @@ public class Program
     {
         // Configuration binding.
         builder
-            .ConfigureOptions<EmailSenderOptions>(EmailSenderOptions.Key)
+            .ConfigureOptions<EmailSenderOptions>(EmailSenderOptions.Key, out var emailSenderOptions)
             .ConfigureOptions<TokenAuthOptions>(TokenAuthOptions.Key, out var tokenAuthOptions);
+
+        emailSenderOptions.RequireProperty(o => o.SenderEmailAddress);
 
         var redisHost = builder.Configuration.GetRequiredValue("REDIS_HOST");
         var jwtSigningKey = builder.Configuration.GetRequiredValue("JWT_SIGNING_KEY");

@@ -73,6 +73,11 @@ public sealed class AccountController : ControllerBase
         {
             return NotFound($"Unable to load user with ID '{request.UserId}'.");
         }
+
+        if (user.EmailConfirmed)
+        {
+            return BadRequest("Email has already been confirmed.");
+        }
         cancellationToken.ThrowIfCancellationRequested();
 
         var result = await _userManager.ConfirmEmailAsync(user, request.Code);
@@ -101,6 +106,11 @@ public sealed class AccountController : ControllerBase
         if (user is null)
         {
             return NotFound($"Unable to load user with ID '{request.UserId}'.");
+        }
+
+        if (user.EmailConfirmed)
+        {
+            return BadRequest("Invitation has already been accepted.");
         }
         cancellationToken.ThrowIfCancellationRequested();
 

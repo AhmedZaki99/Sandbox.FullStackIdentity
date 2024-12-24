@@ -46,8 +46,10 @@ public class Program
     {
         // Configuration binding.
         builder
-            .ConfigureOptions<EmailSenderOptions>(EmailSenderOptions.Key)
+            .ConfigureOptions<EmailSenderOptions>(EmailSenderOptions.Key, out var emailSenderOptions)
             .ConfigureOptions<LockingOptions>(LockingOptions.Key);
+
+        emailSenderOptions.RequireProperty(o => o.SenderEmailAddress);
 
         var redisHost = builder.Configuration.GetRequiredValue("REDIS_HOST");
         var sendGridApiKey = builder.Configuration.GetRequiredValue("SENDGRID_API_KEY");
