@@ -2,6 +2,7 @@
 using System.Text;
 using Dapper;
 using FluentResults;
+using Hope.Results;
 using Sandbox.FullStackIdentity.Domain;
 
 namespace Sandbox.FullStackIdentity.Persistence;

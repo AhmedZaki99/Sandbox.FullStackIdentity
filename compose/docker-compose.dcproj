@@ -5,7 +5,6 @@
     <DockerTargetOS>Linux</DockerTargetOS>
     <DockerPublishLocally>False</DockerPublishLocally>
     <ProjectGuid>e0e06b3c-2364-4ed5-9b25-4d7f60a63907</ProjectGuid>
-    <AdditionalComposeFilePaths>docker-compose.build.yml</AdditionalComposeFilePaths>
     <DockerComposeProjectName>fullstack-identity-debug</DockerComposeProjectName>
   </PropertyGroup>
   <ItemGroup>
@@ -16,9 +15,6 @@
       <DependentUpon>docker-compose.yml</DependentUpon>
     </None>
     <None Include="docker-compose.production.yml">
-      <DependentUpon>docker-compose.yml</DependentUpon>
-    </None>
-    <None Include="docker-compose.build.yml">
       <DependentUpon>docker-compose.yml</DependentUpon>
     </None>
   </ItemGroup>

@@ -12,7 +12,12 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS restore
 WORKDIR /repo
 COPY --parents ["src/*/*.csproj", "./"]
 WORKDIR /repo/src/Sandbox.FullStackIdentity.Services.Worker
-RUN dotnet restore 
+# Add private nuget source & restore.
+RUN --mount=type=secret,id=GITHUB_USERNAME --mount=type=secret,id=GITHUB_TOKEN \
+GITHUB_USERNAME=$(cat /run/secrets/GITHUB_USERNAME) && \
+GITHUB_TOKEN=$(cat /run/secrets/GITHUB_TOKEN) && \
+dotnet nuget add source --username $GITHUB_USERNAME --password $GITHUB_TOKEN --store-password-in-clear-text --name github "https://nuget.pkg.github.com/$GITHUB_USERNAME/index.json" && \
+dotnet restore
 
 
 # This stage is used as a part of testing workflows

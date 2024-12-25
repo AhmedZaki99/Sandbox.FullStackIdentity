@@ -1,5 +1,5 @@
 ﻿using FluentResults;
-using Sandbox.FullStackIdentity.Domain;
+using Hope.Results;
 using Microsoft.AspNetCore.Identity;
 
 namespace Sandbox.FullStackIdentity.Application;

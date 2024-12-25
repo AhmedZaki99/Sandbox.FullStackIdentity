@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Hope.Configuration.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Sandbox.FullStackIdentity.Application;
 using Sandbox.FullStackIdentity.Infrastructure;

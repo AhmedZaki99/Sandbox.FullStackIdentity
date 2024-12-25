@@ -1,4 +1,4 @@
-﻿using Sandbox.FullStackIdentity.Application;
+﻿using Hope.Configuration;
 using Serilog.Events;
 using Serilog.Sinks.PostgreSQL.ColumnWriters;
 

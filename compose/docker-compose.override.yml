@@ -5,6 +5,14 @@ services:
 
   host-api:
     pull_policy: build
+    build:
+      context: ..
+      dockerfile: src/Sandbox.FullStackIdentity.Services.HostApi/Dockerfile
+      target: final
+      secrets: &build-secrets
+        - GITHUB_USERNAME
+        - GITHUB_TOKEN
+    secrets: *build-secrets
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
@@ -13,11 +21,23 @@ services:
 
   worker:
     pull_policy: build
+    build:
+      context: ..
+      dockerfile: src/Sandbox.FullStackIdentity.Services.Worker/Dockerfile
+      target: final
+      secrets: *build-secrets
+    secrets: *build-secrets
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       
   migrator:
     pull_policy: build
+    build:
+      context: ..
+      dockerfile: src/Sandbox.FullStackIdentity.Services.Migrator/Dockerfile
+      target: final
+      secrets: *build-secrets
+    secrets: *build-secrets
     environment: 
       - DOTNET_ENVIRONMENT=Development
             
@@ -28,6 +48,10 @@ services:
       
         
 secrets:
+  GITHUB_USERNAME:
+    file: ./secrets/GITHUB_USERNAME.txt
+  GITHUB_TOKEN:
+    file: ./secrets/GITHUB_TOKEN.txt
   POSTGRES_USER:
     file: ./secrets/POSTGRES_USER.txt
   POSTGRES_PASSWORD:

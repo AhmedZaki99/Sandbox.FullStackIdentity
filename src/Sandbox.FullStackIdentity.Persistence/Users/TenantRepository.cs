@@ -1,6 +1,7 @@
 ﻿using System.Data.Common;
 using Dapper;
 using FluentResults;
+using Hope.Results;
 using Sandbox.FullStackIdentity.Domain;
 
 namespace Sandbox.FullStackIdentity.Persistence;

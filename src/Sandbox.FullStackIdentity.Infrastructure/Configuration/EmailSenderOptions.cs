@@ -1,4 +1,4 @@
-﻿using Sandbox.FullStackIdentity.Application;
+﻿using Hope.Configuration;
 using SendGrid.Helpers.Reliability;
 
 namespace Sandbox.FullStackIdentity.Infrastructure;

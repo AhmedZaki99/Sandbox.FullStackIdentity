@@ -1,5 +1,6 @@
 using System.Net;
 using Hangfire;
+using Hope.Configuration.Extensions;
 using Npgsql;
 using Sandbox.FullStackIdentity.Background;
 using Sandbox.FullStackIdentity.DependencyInjection;

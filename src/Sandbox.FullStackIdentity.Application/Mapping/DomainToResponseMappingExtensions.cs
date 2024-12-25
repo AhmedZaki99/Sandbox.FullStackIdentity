@@ -1,4 +1,5 @@
-﻿using Sandbox.FullStackIdentity.Contracts;
+﻿using Hope.Results;
+using Sandbox.FullStackIdentity.Contracts;
 using Sandbox.FullStackIdentity.Domain;
 
 namespace Sandbox.FullStackIdentity.Application;

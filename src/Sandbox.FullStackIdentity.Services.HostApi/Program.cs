@@ -1,5 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Hope.Configuration.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;

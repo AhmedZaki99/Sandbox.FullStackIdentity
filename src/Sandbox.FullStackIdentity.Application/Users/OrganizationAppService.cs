@@ -1,10 +1,11 @@
 ﻿using FluentResults;
+using Hope.Results;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Sandbox.FullStackIdentity.Contracts;
 using Sandbox.FullStackIdentity.DependencyInjection;
 using Sandbox.FullStackIdentity.Domain;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Sandbox.FullStackIdentity.Application;
 

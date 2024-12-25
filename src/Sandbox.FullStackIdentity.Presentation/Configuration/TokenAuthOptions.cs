@@ -1,4 +1,4 @@
-﻿using Sandbox.FullStackIdentity.Application;
+﻿using Hope.Configuration;
 
 namespace Sandbox.FullStackIdentity.Presentation;
 

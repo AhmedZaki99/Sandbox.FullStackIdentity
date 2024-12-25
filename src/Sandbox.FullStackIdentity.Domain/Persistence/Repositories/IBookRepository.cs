@@ -1,4 +1,5 @@
 ﻿using FluentResults;
+using Hope.Results;
 
 namespace Sandbox.FullStackIdentity.Domain;
 

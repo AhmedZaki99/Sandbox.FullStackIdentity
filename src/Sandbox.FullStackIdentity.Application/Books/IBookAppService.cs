@@ -1,6 +1,6 @@
 ﻿using FluentResults;
+using Hope.Results;
 using Sandbox.FullStackIdentity.Contracts;
-using Sandbox.FullStackIdentity.Domain;
 
 namespace Sandbox.FullStackIdentity.Application;
 
