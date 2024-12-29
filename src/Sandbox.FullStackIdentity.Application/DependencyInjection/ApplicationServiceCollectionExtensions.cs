@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Internal;
 using Sandbox.FullStackIdentity.Application;
-using Sandbox.FullStackIdentity.Domain;
 
 namespace Sandbox.FullStackIdentity.DependencyInjection;
 
@@ -37,7 +36,7 @@ public static class ApplicationServiceCollectionExtensions
     public static IdentityBuilder AddAppManagers(this IdentityBuilder identityBuilder)
     {
         return identityBuilder
-            .AddRoles<Role>()
+            .AddRoles<IdentityRole<Guid>>()
             .AddUserManager<AppUserManager>();
     }
 

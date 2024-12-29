@@ -57,7 +57,7 @@ internal sealed class TenantRepository : ITenantRepository
 
         var result = await connection.QueryAsync<User>(
             """
-            SELECT * FROM users WHERE tenant_id = @tenantId
+            SELECT * FROM identity.users WHERE tenant_id = @tenantId
             """,
             new { tenantId });
 

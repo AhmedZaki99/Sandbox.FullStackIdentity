@@ -30,7 +30,7 @@ internal sealed class RefreshTokenRepository : IRefreshTokenRepository
         var result = await connection.QueryAsync<RefreshToken, User, RefreshToken>(
             """
             SELECT * FROM refresh_tokens rt
-            INNER JOIN users u ON rt.user_id = u.id
+            INNER JOIN identity.users u ON rt.user_id = u.id
             WHERE rt.token = @token 
             LIMIT 1
             """,

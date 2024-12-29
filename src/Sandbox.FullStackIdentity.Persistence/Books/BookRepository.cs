@@ -34,7 +34,7 @@ internal sealed class BookRepository : IBookRepository
         var sqlBuilder = new StringBuilder("SELECT * FROM books b");
         if (loadOwner)
         {
-            sqlBuilder.AppendLine("INNER JOIN users u ON b.owner_id = u.id");
+            sqlBuilder.AppendLine("INNER JOIN identity.users u ON b.owner_id = u.id");
         }
         sqlBuilder.AppendLine("WHERE b.tenant_id = @tenantId AND b.id = @bookId LIMIT 1");
 
@@ -55,7 +55,7 @@ internal sealed class BookRepository : IBookRepository
         var sqlBuilder = new StringBuilder("SELECT * FROM books b");
         if (loadOwner)
         {
-            sqlBuilder.AppendLine("INNER JOIN users u ON b.owner_id = u.id");
+            sqlBuilder.AppendLine("INNER JOIN identity.users u ON b.owner_id = u.id");
         }
         sqlBuilder.AppendLine("WHERE b.tenant_id = @tenantId AND b.title = @title LIMIT 1");
 
@@ -142,7 +142,7 @@ internal sealed class BookRepository : IBookRepository
         
         bool userExists = connection.ExecuteScalar<bool>(
             $"""
-            SELECT COUNT(1) FROM users WHERE tenant_id = @{nameof(Book.TenantId)} AND id = @{nameof(Book.OwnerId)}
+            SELECT COUNT(1) FROM identity.users WHERE tenant_id = @{nameof(Book.TenantId)} AND id = @{nameof(Book.OwnerId)}
             """,
             book);
 

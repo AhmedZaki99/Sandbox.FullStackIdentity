@@ -16,14 +16,14 @@ public class RolesController : ControllerBase
     #region Dependencies
 
     private readonly UserManager<User> _userManager;
-    private readonly RoleManager<Role> _roleManager;
+    private readonly RoleManager<IdentityRole<Guid>> _roleManager;
     private readonly ILogger<RolesController> _logger;
 
     #endregion
 
     #region Constructor
 
-    public RolesController(UserManager<User> userManager, RoleManager<Role> roleManager, ILogger<RolesController> logger)
+    public RolesController(UserManager<User> userManager, RoleManager<IdentityRole<Guid>> roleManager, ILogger<RolesController> logger)
     {
         _userManager = userManager;
         _roleManager = roleManager;
@@ -45,10 +45,7 @@ public class RolesController : ControllerBase
         }
         cancellationToken.ThrowIfCancellationRequested();
 
-        var role = new Role
-        {
-            Name = request.RoleName
-        };
+        var role = new IdentityRole<Guid>(request.RoleName);
 
         var result = await _roleManager.CreateAsync(role);
         if (!result.Succeeded)

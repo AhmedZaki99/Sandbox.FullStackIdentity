@@ -1,6 +1,9 @@
 ﻿using System.Data;
+using System.Text.Json;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Hope.Identity.Dapper;
+using Hope.Identity.Dapper.DependencyInjection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Sandbox.FullStackIdentity.Domain;
@@ -50,8 +53,27 @@ public static class PersistenceServiceCollectionExtensions
         builder.Services.AddScoped<IBookRepository, BookRepository>();
         builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
-        builder.Services.AddScoped<IUserStore<User>, UserStore>();
-        builder.Services.AddScoped<IRoleStore<Role>, RoleStore>();
+        builder.Services.AddDapperStores<AppUserStore, DapperRoleStore<IdentityRole<Guid>, Guid>>(options =>
+        {
+            options.TableSchema = "identity";
+            options.TableNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+            options.ExtraUserInsertProperties =
+            [
+                nameof(User.TenantId),
+                nameof(User.IsInvited),
+                nameof(User.InvitationAccepted),
+                nameof(User.GrantedPermission),
+                nameof(User.FirstName),
+                nameof(User.LastName)
+            ];
+            options.ExtraUserUpdateProperties =
+            [
+                nameof(User.InvitationAccepted),
+                nameof(User.GrantedPermission),
+                nameof(User.FirstName),
+                nameof(User.LastName)
+            ];
+        });
 
 
         // Hangfire
