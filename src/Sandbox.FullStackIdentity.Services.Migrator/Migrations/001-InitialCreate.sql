@@ -13,8 +13,9 @@ CREATE TABLE subscription_preferences (
 
 CREATE TABLE tenants (
     id uuid PRIMARY KEY,
-    name varchar(128),
+    name varchar(128) NOT NULL,
     handle varchar(128) NOT NULL,
+    blacklisted_emails varchar(128)[] NOT NULL DEFAULT array[]::varchar(128)[],
     is_deleted boolean NOT NULL DEFAULT FALSE
 );
 
@@ -112,7 +113,9 @@ CREATE UNIQUE INDEX idx_refresh_tokens_token ON refresh_tokens (token);
 CREATE TABLE books (
     id uuid PRIMARY KEY,
     tenant_id uuid REFERENCES tenants (id),
-    owner_id uuid NOT NULL REFERENCES identity.users (id),
+    creator_id uuid NOT NULL REFERENCES identity.users (id),
+    sender_email varchar(128),
+    sent_message_id varchar(128),
     title varchar(128) NOT NULL,
     created_on_utc timestamp NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     details book_details,
@@ -121,5 +124,5 @@ CREATE TABLE books (
 );
 
 CREATE INDEX idx_books_tenant_id ON books (tenant_id);
-CREATE INDEX idx_books_owner_id ON books (owner_id);
+CREATE INDEX idx_books_creator_id ON books (creator_id);
 CREATE INDEX idx_books_created_on_utc ON books (created_on_utc);

@@ -1,7 +1,9 @@
 ﻿using System.Data.Common;
 using System.Text;
+using System.Text.Json;
 using Dapper;
 using FluentResults;
+using Hope.Identity.Dapper;
 using Hope.Results;
 using Sandbox.FullStackIdentity.Domain;
 
@@ -26,20 +28,20 @@ internal sealed class BookRepository : IBookRepository
     #region Implementation
 
     /// <inheritdoc/>
-    public async Task<Book?> GetAsync(Guid bookId, bool loadOwner = false, CancellationToken cancellationToken = default)
+    public async Task<Book?> GetAsync(Guid bookId, bool loadCreator = false, CancellationToken cancellationToken = default)
     {
         var tenantId = _multiTenancyContext.CurrentTenantId;
         await using var connection = await _dbDataSource.OpenConnectionAsync(cancellationToken);
 
         var sqlBuilder = new StringBuilder("SELECT * FROM books b");
-        if (loadOwner)
+        if (loadCreator)
         {
-            sqlBuilder.AppendLine("INNER JOIN identity.users u ON b.owner_id = u.id");
+            sqlBuilder.AppendLine("LEFT JOIN identity.users u ON b.creator_id = u.id");
         }
         sqlBuilder.AppendLine("WHERE b.tenant_id = @tenantId AND b.id = @bookId LIMIT 1");
 
         var param = new { tenantId, bookId };
-        var result = loadOwner
+        var result = loadCreator
             ? await connection.QueryAsync(sqlBuilder.ToString(), GetBookMap(), param, splitOn: "id")
             : await connection.QueryAsync<Book>(sqlBuilder.ToString(), param);
 
@@ -47,20 +49,20 @@ internal sealed class BookRepository : IBookRepository
     }
 
     /// <inheritdoc/>
-    public async Task<Book?> GetByTitleAsync(string title, bool loadOwner = false, CancellationToken cancellationToken = default)
+    public async Task<Book?> GetByTitleAsync(string title, bool loadCreator = false, CancellationToken cancellationToken = default)
     {
         var tenantId = _multiTenancyContext.CurrentTenantId;
         await using var connection = await _dbDataSource.OpenConnectionAsync(cancellationToken);
 
         var sqlBuilder = new StringBuilder("SELECT * FROM books b");
-        if (loadOwner)
+        if (loadCreator)
         {
-            sqlBuilder.AppendLine("INNER JOIN identity.users u ON b.owner_id = u.id");
+            sqlBuilder.AppendLine("LEFT JOIN identity.users u ON b.creator_id = u.id");
         }
         sqlBuilder.AppendLine("WHERE b.tenant_id = @tenantId AND b.title = @title LIMIT 1");
 
         var param = new { tenantId, title };
-        var result = loadOwner
+        var result = loadCreator
             ? await connection.QueryAsync(sqlBuilder.ToString(), GetBookMap(), param, splitOn: "id")
             : await connection.QueryAsync<Book>(sqlBuilder.ToString(), param);
 
@@ -69,58 +71,36 @@ internal sealed class BookRepository : IBookRepository
 
 
     /// <inheritdoc/>
-    public async Task<PagedList<Book>> ListAsync(PaginationParams? paginationParams = null, bool deleted = false, CancellationToken cancellationToken = default)
+    public Task<PagedList<Book>> ListAsync(PaginationParams? paginationParams = null, bool deleted = false, CancellationToken cancellationToken = default)
     {
         var tenantId = _multiTenancyContext.CurrentTenantId;
-        await using var connection = await _dbDataSource.OpenConnectionAsync(cancellationToken);
 
-        paginationParams ??= new();
+        var sqlCondition = GetBaseCondition("tenantId", deleted: deleted);
+        var parameters = new DynamicParameters(new { tenantId });
 
-        var condition = GetBaseCondition("tenantId", deleted: deleted);
-        var param = new
-        {
-            tenantId,
-            pageSize = paginationParams.PageSize,
-            offset = paginationParams.Offset
-        };
-
-        var (count, items) = await PaginateAsync(connection, condition, param);
-
-        return new PagedList<Book>
-        {
-            PageNumber = paginationParams.PageNumber,
-            PageSize = paginationParams.PageSize,
-            TotalCount = count,
-            Items = items.ToList()
-        };
+        return PaginateAsync(sqlCondition, parameters, paginationParams, cancellationToken);
     }
 
     /// <inheritdoc/>
-    public async Task<PagedList<Book>> ListByOwnerAsync(Guid userId, PaginationParams? paginationParams = null, bool deleted = false, CancellationToken cancellationToken = default)
+    public Task<PagedList<Book>> ListByCreatorAsync(Guid userId, PaginationParams? paginationParams = null, bool deleted = false, CancellationToken cancellationToken = default)
     {
         var tenantId = _multiTenancyContext.CurrentTenantId;
-        await using var connection = await _dbDataSource.OpenConnectionAsync(cancellationToken);
 
-        paginationParams ??= new();
+        var sqlCondition = $"{GetBaseCondition("tenantId", deleted: deleted)} AND creator_id = @userId";
+        var parameters = new DynamicParameters(new { tenantId, userId });
 
-        var condition = $"{GetBaseCondition("tenantId", deleted: deleted)} AND owner_id = @userId";
-        var param = new
-        {
-            tenantId,
-            userId,
-            pageSize = paginationParams.PageSize,
-            offset = paginationParams.Offset
-        };
+        return PaginateAsync(sqlCondition, parameters, paginationParams, cancellationToken);
+    }
+    
+    /// <inheritdoc/>
+    public Task<PagedList<Book>> ListBySenderEmailAsync(string email, PaginationParams? paginationParams = null, bool deleted = false, CancellationToken cancellationToken = default)
+    {
+        var tenantId = _multiTenancyContext.CurrentTenantId;
 
-        var (count, items) = await PaginateAsync(connection, condition, param);
+        var sqlCondition = $"{GetBaseCondition("tenantId", deleted: deleted)} AND sender_email = @email";
+        var parameters = new DynamicParameters(new { tenantId, email });
 
-        return new PagedList<Book>
-        {
-            PageNumber = paginationParams.PageNumber,
-            PageSize = paginationParams.PageSize,
-            TotalCount = count,
-            Items = items.ToList()
-        };
+        return PaginateAsync(sqlCondition, parameters, paginationParams, cancellationToken);
     }
     
 
@@ -129,36 +109,43 @@ internal sealed class BookRepository : IBookRepository
     {
         var tenantId = _multiTenancyContext.CurrentTenantId;
         await using var connection = await _dbDataSource.OpenConnectionAsync(cancellationToken);
-        
-        if (book.OwnerId == Guid.Empty)
+
+        if (book.CreatorId is not null)
         {
-            return new ValidationError("Owner Id is required", nameof(book.OwnerId));
+            bool userExists = await connection.ExecuteScalarAsync<bool>(
+                $"""
+                SELECT EXISTS (
+                    SELECT 1 FROM identity.users WHERE tenant_id = @{nameof(Book.TenantId)} AND id = @{nameof(Book.CreatorId)}
+                )
+                """,
+                book);
+
+            if (!userExists)
+            {
+                return new NotFoundError("Owner not found");
+            }
         }
+
         if (book.Id == Guid.Empty)
         {
             book.Id = Guid.NewGuid();
         }
         book.TenantId = tenantId;
-        
-        bool userExists = connection.ExecuteScalar<bool>(
-            $"""
-            SELECT COUNT(1) FROM identity.users WHERE tenant_id = @{nameof(Book.TenantId)} AND id = @{nameof(Book.OwnerId)}
-            """,
-            book);
 
-        if (!userExists)
-        {
-            return new NotFoundError("Owner not found");
-        }
+        string[] propertyNames = [
+            nameof(Book.Id),
+            nameof(Book.TenantId),
+            nameof(Book.CreatorId),
+            nameof(Book.SenderEmail),
+            nameof(Book.SentMessageId),
+            nameof(Book.Title),
+            nameof(Book.Details)
+        ];
+
         await connection.ExecuteAsync(
             $"""
-            INSERT INTO books (id, tenant_id, owner_id, title, details) 
-            VALUES (
-                @{nameof(Book.Id)},
-                @{nameof(Book.TenantId)},
-                @{nameof(Book.OwnerId)},
-                @{nameof(Book.Title)},
-                @{nameof(Book.Details)})
+            INSERT INTO books {propertyNames.BuildSqlColumnsBlock(JsonNamingPolicy.SnakeCaseLower, insertLines: true)} 
+            VALUES {propertyNames.BuildSqlParametersBlock(insertLines: true)}
             """,
             book);
 
@@ -174,13 +161,16 @@ internal sealed class BookRepository : IBookRepository
         book.Id = bookId;
         book.TenantId = tenantId;
 
+        string[] propertyNames = [
+            nameof(Book.Title),
+            nameof(Book.Details),
+            nameof(Book.IsDeleted)
+        ];
+
         int count = await connection.ExecuteAsync(
             $"""
             UPDATE books 
-            SET (title, details, is_deleted) = (
-                @{nameof(Book.Title)}, 
-                @{nameof(Book.Details)},
-                @{nameof(Book.IsDeleted)})
+            SET {propertyNames.BuildSqlColumnsBlock(JsonNamingPolicy.SnakeCaseLower)}  = {propertyNames.BuildSqlParametersBlock()}
             WHERE {GetBaseCondition(nameof(Book.TenantId))} AND id = @{nameof(Book.Id)}
             """,
             book);
@@ -216,8 +206,14 @@ internal sealed class BookRepository : IBookRepository
 
     #region Helpres
 
-    private static async Task<(int, IEnumerable<Book>)> PaginateAsync(DbConnection connection, string queryCondition, object param)
+    public async Task<PagedList<Book>> PaginateAsync(string queryCondition, DynamicParameters parameters, PaginationParams? paginationParams, CancellationToken cancellationToken)
     {
+        await using var connection = await _dbDataSource.OpenConnectionAsync(cancellationToken);
+
+        paginationParams ??= new();
+        parameters.Add("pageSize", paginationParams.PageSize);
+        parameters.Add("offset", paginationParams.Offset);
+
         var sql =
             $"""
             SELECT COUNT(*) FROM books
@@ -229,12 +225,18 @@ internal sealed class BookRepository : IBookRepository
             LIMIT @pageSize OFFSET @offset;
             """;
 
-        using var multi = await connection.QueryMultipleAsync(sql, param);
+        using var multi = await connection.QueryMultipleAsync(sql, parameters);
 
         var count = await multi.ReadFirstAsync<int>();
         var items = await multi.ReadAsync<Book>();
 
-        return (count, items);
+        return new PagedList<Book>
+        {
+            PageNumber = paginationParams.PageNumber,
+            PageSize = paginationParams.PageSize,
+            TotalCount = count,
+            Items = items.ToList()
+        };
     }
 
 
@@ -242,7 +244,7 @@ internal sealed class BookRepository : IBookRepository
     {
         return (book, user) =>
         {
-            book.Owner = user;
+            book.Creator = user;
             return book;
         };
     }

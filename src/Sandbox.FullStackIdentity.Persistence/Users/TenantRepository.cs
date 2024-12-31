@@ -1,6 +1,8 @@
 ﻿using System.Data.Common;
+using System.Text.Json;
 using Dapper;
 using FluentResults;
+using Hope.Identity.Dapper;
 using Hope.Results;
 using Sandbox.FullStackIdentity.Domain;
 
@@ -66,24 +68,26 @@ internal sealed class TenantRepository : ITenantRepository
 
 
     /// <inheritdoc/>
-    public async Task<Result<Tenant>> CreateAsync(string handle, string? name = null, CancellationToken cancellationToken = default)
+    public async Task<Result<Tenant>> CreateAsync(Tenant tenant, CancellationToken cancellationToken = default)
     {
         await using var connection = await _dbDataSource.OpenConnectionAsync(cancellationToken);
 
-        var tenant = new Tenant
+        if (tenant.Id == Guid.Empty)
         {
-            Id = Guid.NewGuid(),
-            Handle = handle,
-            Name = name
-        };
+            tenant.Id = Guid.NewGuid();
+        }
+
+        string[] propertyNames = [
+            nameof(Tenant.Id),
+            nameof(Tenant.Handle),
+            nameof(Tenant.Name),
+            nameof(Tenant.BlacklistedEmails)
+        ];
 
         await connection.ExecuteAsync(
             $"""
-            INSERT INTO tenants (id, handle, name) 
-            VALUES (
-                @{nameof(Tenant.Id)}, 
-                @{nameof(Tenant.Handle)}, 
-                @{nameof(Tenant.Name)})
+            INSERT INTO tenants {propertyNames.BuildSqlColumnsBlock(JsonNamingPolicy.SnakeCaseLower)} 
+            VALUES {propertyNames.BuildSqlParametersBlock()}
             """,
             tenant);
 
@@ -108,6 +112,102 @@ internal sealed class TenantRepository : ITenantRepository
             return new NotFoundError("Tenant is not found.");
         }
         return Result.Ok();
+    }
+    
+
+    /// <inheritdoc/>
+    public async Task<Result> ChangeHandleAsync(string handle, Guid? tenantId = null, CancellationToken cancellationToken = default)
+    {
+        tenantId ??= _multiTenancyContext.CurrentTenantId;
+        await using var connection = await _dbDataSource.OpenConnectionAsync(cancellationToken);
+
+        int count = await connection.ExecuteAsync(
+            """
+            UPDATE tenants SET handle = @handle 
+            WHERE is_deleted = FALSE AND id = @tenantId
+            """,
+            new { tenantId, handle });
+
+        if (count < 1)
+        {
+            return new NotFoundError("Tenant is not found.");
+        }
+        return Result.Ok();
+    }
+
+
+    /// <inheritdoc/>
+    public async Task<Result<string[]>> AddToBlacklistAsync(string[] emails, Guid? tenantId = null, CancellationToken cancellationToken = default)
+    {
+        tenantId ??= _multiTenancyContext.CurrentTenantId;
+        await using var connection = await _dbDataSource.OpenConnectionAsync(cancellationToken);
+
+        var blacklistedEmails = await connection.ExecuteScalarAsync<string[]>(
+            """
+            UPDATE tenants 
+            SET blacklisted_emails = (
+                SELECT array_agg(DISTINCT email) 
+                FROM unnest(array_cat(blacklisted_emails, @emails)) AS email
+            )
+            WHERE is_deleted = FALSE AND id = @tenantId
+            RETURNING blacklisted_emails
+            """,
+            new { tenantId, emails });
+
+        if (blacklistedEmails is null)
+        {
+            return new NotFoundError("Tenant is not found.");
+        }
+        return blacklistedEmails;
+    }
+
+    /// <inheritdoc/>
+    public async Task<Result<string[]>> RemoveFromBlacklistAsync(string[] emails, Guid? tenantId = null, CancellationToken cancellationToken = default)
+    {
+        tenantId ??= _multiTenancyContext.CurrentTenantId;
+        await using var connection = await _dbDataSource.OpenConnectionAsync(cancellationToken);
+
+        var blacklistedEmails = await connection.ExecuteScalarAsync<string[]>(
+            """
+            UPDATE tenants 
+            SET blacklisted_emails = (
+                SELECT array_agg(email) 
+                FROM (
+                    SELECT unnest(blacklisted_emails) AS email
+                    EXCEPT
+                    SELECT unnest(@emails)
+                )
+            )
+            WHERE is_deleted = FALSE AND id = @tenantId
+            RETURNING blacklisted_emails
+            """,
+            new { tenantId, emails });
+
+        if (blacklistedEmails is null)
+        {
+            return new NotFoundError("Tenant is not found.");
+        }
+        return blacklistedEmails;
+    }
+
+    /// <inheritdoc/>
+    public async Task<Result<string[]>> UpdateBlacklistAsync(string[] blacklistedEmails, Guid? tenantId = null, CancellationToken cancellationToken = default)
+    {
+        tenantId ??= _multiTenancyContext.CurrentTenantId;
+        await using var connection = await _dbDataSource.OpenConnectionAsync(cancellationToken);
+
+        int count = await connection.ExecuteAsync(
+            """
+            UPDATE tenants SET blacklisted_emails = @blacklistedEmails
+            WHERE is_deleted = FALSE AND id = @tenantId
+            """,
+            new { tenantId, blacklistedEmails });
+
+        if (count < 1)
+        {
+            return new NotFoundError("Tenant is not found.");
+        }
+        return blacklistedEmails;
     }
 
 

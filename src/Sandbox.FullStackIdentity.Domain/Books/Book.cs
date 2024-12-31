@@ -2,8 +2,11 @@
 
 public class Book : MultitenantEntity
 {
-    public Guid OwnerId { get; set; }
-    public User? Owner { get; set; }
+    public Guid? CreatorId { get; set; }
+    public User? Creator { get; set; }
+
+    public string? SenderEmail { get; set; }
+    public string? SentMessageId { get; set; }
 
     public required string Title { get; set; }
     public DateTime CreatedOnUtc { get; set; }
