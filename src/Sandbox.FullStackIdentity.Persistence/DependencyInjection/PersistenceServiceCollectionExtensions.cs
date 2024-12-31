@@ -49,6 +49,7 @@ public static class PersistenceServiceCollectionExtensions
         builder.Services.AddScoped<IMultiTenancyInitializer>(sp => sp.GetRequiredService<MultiTenancyService>());
 
         builder.Services.AddScoped<IConfigRepository, ConfigRepository>();
+        builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         builder.Services.AddScoped<ITenantRepository, TenantRepository>();
         builder.Services.AddScoped<IBookRepository, BookRepository>();
         builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
@@ -57,22 +58,19 @@ public static class PersistenceServiceCollectionExtensions
         {
             options.TableSchema = "identity";
             options.TableNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
-            options.ExtraUserInsertProperties =
-            [
-                nameof(User.TenantId),
-                nameof(User.IsInvited),
-                nameof(User.InvitationAccepted),
-                nameof(User.GrantedPermission),
-                nameof(User.FirstName),
-                nameof(User.LastName)
-            ];
-            options.ExtraUserUpdateProperties =
-            [
-                nameof(User.InvitationAccepted),
-                nameof(User.GrantedPermission),
-                nameof(User.FirstName),
-                nameof(User.LastName)
-            ];
+
+            options.ExtraUserUpdateProperties = new()
+            {
+                { nameof(User.InvitationAccepted), null },
+                { nameof(User.GrantedPermission), null },
+                { nameof(User.FirstName), null },
+                { nameof(User.LastName), null }
+            };
+            options.ExtraUserInsertProperties = new(options.ExtraUserUpdateProperties)
+            {
+                { nameof(User.TenantId), null },
+                { nameof(User.IsInvited), null }
+            };
         });
 
 
