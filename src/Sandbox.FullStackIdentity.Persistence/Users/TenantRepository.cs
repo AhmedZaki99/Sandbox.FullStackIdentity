@@ -52,18 +52,39 @@ internal sealed class TenantRepository : ITenantRepository
     }
 
     /// <inheritdoc/>
-    public async Task<List<User>> ListUsersAsync(Guid? tenantId = null, CancellationToken cancellationToken = default)
+    public async Task<PagedList<User>> ListUsersAsync(Guid? tenantId = null, PaginationParams? paginationParams = null, CancellationToken cancellationToken = default)
     {
+        paginationParams ??= new();
         tenantId ??= _multiTenancyContext.CurrentTenantId;
         await using var connection = await _dbDataSource.OpenConnectionAsync(cancellationToken);
 
-        var result = await connection.QueryAsync<User>(
-            """
-            SELECT * FROM identity.users WHERE tenant_id = @tenantId
-            """,
-            new { tenantId });
+        using var multi = await connection.QueryMultipleAsync(
+            $"""
+            SELECT COUNT(*) FROM identity.users
+            WHERE tenant_id = @tenantId;
 
-        return result.ToList();
+            SELECT * FROM identity.users
+            WHERE tenant_id = @tenantId;
+            ORDER BY user_name
+            LIMIT @PageSize OFFSET @Offset;
+            """,
+            new
+            {
+                tenantId,
+                paginationParams.PageSize,
+                paginationParams.Offset
+            });
+
+        var count = await multi.ReadFirstAsync<int>();
+        var users = await multi.ReadAsync<User>();
+
+        return new PagedList<User>
+        {
+            PageNumber = paginationParams.PageNumber,
+            PageSize = paginationParams.PageSize,
+            TotalCount = count,
+            Items = users.ToList()
+        };
     }
 
 

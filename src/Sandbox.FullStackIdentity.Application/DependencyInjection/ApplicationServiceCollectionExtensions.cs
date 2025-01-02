@@ -17,6 +17,7 @@ public static class ApplicationServiceCollectionExtensions
     {
         services.TryAddSingleton<ISystemClock, SystemClock>();
 
+        services.AddScoped<ITenantHandleGenerator, TenantHandleGenerator>();
         services.AddScoped<ITenantValidator, TenantValidator>();
 
         services.AddScoped<IOrganizationAppService, OrganizationAppService>();

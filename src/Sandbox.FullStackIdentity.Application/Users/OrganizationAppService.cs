@@ -16,12 +16,16 @@ internal sealed class OrganizationAppService : IOrganizationAppService
     #region Dependencies
 
     private readonly AppUserManager _userManager;
+    private readonly IEmailCreator _emailCreator;
+    private readonly ITenantHandleGenerator _tenantHandleGenerator;
     private readonly ITenantValidator _tenantValidator;
     private readonly ITenantRepository _tenantRepository;
     private readonly IMultiTenancyContext _multiTenancyContext;
     private readonly ILogger<OrganizationAppService> _logger;
 
     public OrganizationAppService(
+        IEmailCreator emailCreator,
+        ITenantHandleGenerator tenantHandleGenerator,
         ITenantValidator tenantValidator,
         ITenantRepository tenantRepository,
         IMultiTenancyContext multiTenancyContext,
@@ -40,6 +44,8 @@ internal sealed class OrganizationAppService : IOrganizationAppService
         }
 
         _userManager = appUserManager;
+        _emailCreator = emailCreator;
+        _tenantHandleGenerator = tenantHandleGenerator;
         _tenantValidator = tenantValidator;
         _tenantRepository = tenantRepository;
         _multiTenancyContext = multiTenancyContext;
@@ -51,15 +57,31 @@ internal sealed class OrganizationAppService : IOrganizationAppService
     #region Implementation
 
     /// <inheritdoc/>
+    public async Task<PagedList<UserResponse>> ListUsersAsync(int page = 1, int pageSize = 30, CancellationToken cancellationToken = default)
+    {
+        var paginationParams = new PaginationParams(page, pageSize);
+        var pageResult = await _tenantRepository.ListUsersAsync(paginationParams: paginationParams, cancellationToken: cancellationToken);
+
+        return pageResult.MapItems(user => user.ToResponse());
+    }
+
+
+    /// <inheritdoc/>
     public async Task<Result<User>> CreateOrganizationAsync(RegisterRequest requestModel, CancellationToken cancellationToken = default)
     {
-        var validationResult = await _tenantValidator.ValidateAsync(requestModel.OrganizationHandle, cancellationToken);
+        var tenant = new Tenant
+        {
+            Name = requestModel.OrganizationName,
+            Handle = await _tenantHandleGenerator.GenerateAsync(cancellationToken)
+        };
+
+        var validationResult = await _tenantValidator.ValidateAsync(tenant, cancellationToken);
         if (validationResult.IsFailed)
         {
             return validationResult;
         }
 
-        var tenantResult = await _tenantRepository.CreateAsync(requestModel.OrganizationHandle, requestModel.OrganizationName, cancellationToken);
+        var tenantResult = await _tenantRepository.CreateAsync(tenant, cancellationToken);
         if (tenantResult.IsFailed)
         {
             return tenantResult.ToResult();
@@ -89,9 +111,57 @@ internal sealed class OrganizationAppService : IOrganizationAppService
 
             return roleResult.ToFluentResult();
         }
+        await _emailCreator.CreateAsync(tenant.Handle, cancellationToken);
 
-        _logger.LogInformation("Organization '{handle}' with email '{email}' was created.", tenantResult.Value.Handle, user.Email);
+        _logger.LogInformation("Organization '{name}' with email '{email}' was created.", tenantResult.Value.Name, user.Email);
         return user;
+    }
+    
+    /// <inheritdoc/>
+    public async Task<Result<OrganizationResponse>> GenerateNewHandleAsync(CancellationToken cancellationToken = default)
+    {
+        var tenant = await _tenantRepository.GetAsync(cancellationToken: cancellationToken);
+        if (tenant is null)
+        {
+            return new NotFoundError("Organization not found.");
+        }
+        var oldHandle = tenant.Handle;
+        var newHandle = await _tenantHandleGenerator.GenerateAsync(cancellationToken);
+
+        var result = await _tenantRepository.ChangeHandleAsync(newHandle, cancellationToken: cancellationToken);
+        if (result.IsFailed)
+        {
+            return result;
+        }
+        await _emailCreator.CreateAsync(newHandle, cancellationToken);
+        await _emailCreator.DeleteAsync(oldHandle, cancellationToken);
+
+        tenant.Handle = newHandle;
+        return tenant.ToResponse();
+    }
+    
+    /// <inheritdoc/>
+    public async Task<Result<OrganizationResponse>> ChangeNameAsync(ChangeNameRequest request, CancellationToken cancellationToken = default)
+    {
+        var tenant = await _tenantRepository.GetAsync(cancellationToken: cancellationToken);
+        if (tenant is null)
+        {
+            return new NotFoundError("Organization not found.");
+        }
+        tenant.Name = request.Name;
+
+        var validationResult = await _tenantValidator.ValidateAsync(tenant, cancellationToken);
+        if (validationResult.IsFailed)
+        {
+            return validationResult;
+        }
+
+        var changeResult = await _tenantRepository.ChangeNameAsync(request.Name, cancellationToken: cancellationToken);
+        if (changeResult.IsFailed)
+        {
+            return changeResult;
+        }
+        return tenant.ToResponse();
     }
 
 
@@ -119,7 +189,7 @@ internal sealed class OrganizationAppService : IOrganizationAppService
             return userResult.ToFluentResult();
         }
 
-        _logger.LogInformation("User '{email}' was invited to organization '{handle}'.", user.Email, tenant.Handle);
+        _logger.LogInformation("User '{email}' was invited to organization '{handle}'.", user.Email, tenant.Name);
         return user;
     }
 
@@ -176,6 +246,64 @@ internal sealed class OrganizationAppService : IOrganizationAppService
             return result.ToFluentResult();
         }
         return Result.Ok();
+    }
+
+
+    /// <inheritdoc/>
+    public async Task<Result<OrganizationResponse>> AddEmailToBlacklistAsync(BlacklistRequest request, CancellationToken cancellationToken = default)
+    {
+        var tenant = await _tenantRepository.GetAsync(cancellationToken: cancellationToken);
+        if (tenant is null)
+        {
+            return new NotFoundError("Organization not found.");
+        }
+
+        var result = await _tenantRepository.AddToBlacklistAsync(request.Emails, cancellationToken: cancellationToken);
+        if (result.IsFailed)
+        {
+            return result.ToResult();
+        }
+        tenant.BlacklistedEmails = result.Value;
+
+        return tenant.ToResponse();
+    }
+
+    /// <inheritdoc/>
+    public async Task<Result<OrganizationResponse>> RemoveEmailFromBlacklistAsync(BlacklistRequest request, CancellationToken cancellationToken = default)
+    {
+        var tenant = await _tenantRepository.GetAsync(cancellationToken: cancellationToken);
+        if (tenant is null)
+        {
+            return new NotFoundError("Organization not found.");
+        }
+
+        var result = await _tenantRepository.RemoveFromBlacklistAsync(request.Emails, cancellationToken: cancellationToken);
+        if (result.IsFailed)
+        {
+            return result.ToResult();
+        }
+        tenant.BlacklistedEmails = result.Value;
+
+        return tenant.ToResponse();
+    }
+
+    /// <inheritdoc/>
+    public async Task<Result<OrganizationResponse>> UpdateBlacklistAsync(BlacklistRequest request, CancellationToken cancellationToken = default)
+    {
+        var tenant = await _tenantRepository.GetAsync(cancellationToken: cancellationToken);
+        if (tenant is null)
+        {
+            return new NotFoundError("Organization not found.");
+        }
+
+        var result = await _tenantRepository.UpdateBlacklistAsync(request.Emails, cancellationToken: cancellationToken);
+        if (result.IsFailed)
+        {
+            return result.ToResult();
+        }
+        tenant.BlacklistedEmails = result.Value;
+
+        return tenant.ToResponse();
     }
 
     #endregion

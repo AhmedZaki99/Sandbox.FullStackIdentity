@@ -17,6 +17,41 @@ public static class DomainToResponseMappingExtensions
         };
     } 
 
+    
+    public static OrganizationResponse ToResponse(this Tenant tenant)
+    {
+        return new OrganizationResponse(
+            tenant.Name,
+            tenant.Handle,
+            tenant.BlacklistedEmails
+        );
+    }
+    
+    public static UserResponse ToResponse(this User user)
+    {
+        return new UserResponse(
+            user.Email,
+            user.InvitationAccepted,
+            user.GrantedPermission,
+            user.FirstName,
+            user.LastName
+        );
+    }
+    
+    public static UserDetailsResponse ToDetailsResponse(this User user, Tenant? tenant)
+    {
+        return new UserDetailsResponse(
+            user.Email,
+            user.EmailConfirmed,
+            user.TwoFactorEnabled,
+            user.FirstName,
+            user.LastName,
+            OrganizationName: tenant?.Name,
+            OrganizationHandle: tenant?.Handle
+        );
+    }
+    
+
     public static BookResponse ToResponse(this Book book)
     {
         return new BookResponse(

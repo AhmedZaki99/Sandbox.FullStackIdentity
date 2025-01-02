@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using FluentResults;
 using Hope.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -43,6 +44,16 @@ public sealed class OrganizationController : ControllerBase
 
     #region Actions
 
+    [HttpGet("users")]
+    public async Task<ActionResult<PagedList<UserResponse>>> GetUsers(
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 30, 
+        CancellationToken cancellationToken = default)
+    {
+        return await _organizationAppService.ListUsersAsync(page, pageSize, cancellationToken);
+    }
+
+
     [AllowAnonymous]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
@@ -67,7 +78,7 @@ public sealed class OrganizationController : ControllerBase
 
         await _accountEmailsAppService.SendEmailConfirmationCodeAsync(user, code, cancellationToken);
 
-        if (_userManager.Options.SignIn.RequireConfirmedAccount)
+        if (_userManager.Options.SignIn.RequireConfirmedAccount || _userManager.Options.SignIn.RequireConfirmedEmail)
         {
             var registerResponse = new RegisterResponse(user.Id, user.Email, Status: "Email confirmation code has been sent.");
             return Ok(registerResponse);
@@ -96,12 +107,12 @@ public sealed class OrganizationController : ControllerBase
         }
         var user = result.Value;
 
-        var code = await _userManager.GenerateInvitationTokenAsync(user);
-        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+        var token = await _userManager.GenerateInvitationTokenAsync(user);
+        token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
         var codeExpirationDays = (int)Math.Floor(_dataProtectionTokenProviderOptions.Value.TokenLifespan.TotalDays);
 
-        await _accountEmailsAppService.SendInvitationLinkAsync(user, code, codeExpirationDays, cancellationToken);
+        await _accountEmailsAppService.SendInvitationLinkAsync(user, token, codeExpirationDays, cancellationToken);
         return Ok();
     }
 
@@ -109,6 +120,59 @@ public sealed class OrganizationController : ControllerBase
     public async Task<IActionResult> CancelInvitation([FromBody] InvitedUserRequest request, CancellationToken cancellationToken)
     {
         var result = await _organizationAppService.RemoveInvitedUserAsync(request, cancellationToken);
+        return GetSuccessOrValidationProblem(result);
+    }
+
+    [HttpPost("change-permissions")]
+    public async Task<IActionResult> ChangePermissions([FromBody] InvitedUserRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _organizationAppService.ChangeUserPermissionsAsync(request, cancellationToken);
+        return GetSuccessOrValidationProblem(result);
+    }
+    
+
+    [HttpPost("generate-email")]
+    public async Task<ActionResult<OrganizationResponse>> GenerateEmail(CancellationToken cancellationToken)
+    {
+        var result = await _organizationAppService.GenerateNewHandleAsync(cancellationToken);
+        return GetValueOrValidationProblem(result);
+    }
+
+    [HttpPost("change-name")]
+    public async Task<ActionResult<OrganizationResponse>> ChangeName(ChangeNameRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _organizationAppService.ChangeNameAsync(request, cancellationToken);
+        return GetValueOrValidationProblem(result);
+    }
+
+
+    [HttpPost("add-to-blacklist")]
+    public async Task<ActionResult<OrganizationResponse>> AddToBlacklist(BlacklistRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _organizationAppService.AddEmailToBlacklistAsync(request, cancellationToken);
+        return GetValueOrValidationProblem(result);
+    }
+
+    [HttpPost("remove-from-blacklist")]
+    public async Task<ActionResult<OrganizationResponse>> RemoveFromBlacklist(BlacklistRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _organizationAppService.RemoveEmailFromBlacklistAsync(request, cancellationToken);
+        return GetValueOrValidationProblem(result);
+    }
+
+    [HttpPost("update-blacklist")]
+    public async Task<ActionResult<OrganizationResponse>> UpdateBlacklist(BlacklistRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _organizationAppService.UpdateBlacklistAsync(request, cancellationToken);
+        return GetValueOrValidationProblem(result);
+    }
+
+    #endregion
+
+    #region Helpers
+
+    private IActionResult GetSuccessOrValidationProblem(Result result)
+    {
         if (result.IsFailed)
         {
             foreach (var error in result.Errors)
@@ -119,11 +183,9 @@ public sealed class OrganizationController : ControllerBase
         }
         return Ok();
     }
-
-    [HttpPost("change-permissions")]
-    public async Task<IActionResult> ChangePermissions([FromBody] InvitedUserRequest request, CancellationToken cancellationToken)
+    
+    private ActionResult<T> GetValueOrValidationProblem<T>(Result<T> result)
     {
-        var result = await _organizationAppService.ChangeUserPermissionsAsync(request, cancellationToken);
         if (result.IsFailed)
         {
             foreach (var error in result.Errors)
@@ -132,7 +194,7 @@ public sealed class OrganizationController : ControllerBase
             }
             return ValidationProblem(ModelState);
         }
-        return Ok();
+        return result.Value;
     }
 
     #endregion

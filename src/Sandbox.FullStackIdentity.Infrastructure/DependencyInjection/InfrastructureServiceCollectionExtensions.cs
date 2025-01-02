@@ -25,6 +25,7 @@ public static class InfrastructureServiceCollectionExtensions
         });
 
         builder.Services.AddTransient<IEmailSender, SendGridEmailSender>();
+        builder.Services.AddTransient<IEmailCreator, EmptyEmailCreator>();
 
 
         if (configureOptions is not null)

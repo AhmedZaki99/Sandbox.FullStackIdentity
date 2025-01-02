@@ -80,7 +80,7 @@ internal sealed class AccountEmailsAppService : IAccountEmailsAppService
 
         var emailData = new
         {
-            organization = tenant.Handle,
+            organization = tenant.Name,
             expiration = tokenExpirationDays,
             userId = user.Id,
             token,

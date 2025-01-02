@@ -22,10 +22,10 @@ internal sealed class TenantValidator : ITenantValidator
     #region Implementation
 
     /// <inheritdoc/>
-    public async Task<Result> ValidateAsync(string handle, CancellationToken cancellationToken = default)
+    public async Task<Result> ValidateAsync(Tenant tenant, CancellationToken cancellationToken = default)
     {
-        var existingTenant = await _tenantRepository.FindByHandleAsync(handle, cancellationToken);
-        if (existingTenant is not null)
+        var existingTenant = await _tenantRepository.FindByHandleAsync(tenant.Handle, cancellationToken);
+        if (existingTenant is not null && tenant.Id != existingTenant.Id)
         {
             return new ConflictError("An organization with this handle already exists.");
         }
