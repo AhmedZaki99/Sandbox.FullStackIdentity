@@ -2,11 +2,15 @@
 
 namespace Sandbox.FullStackIdentity.Contracts;
 
-public sealed class ConfirmEmailRequest
+public sealed class ConfirmEmailChangeRequest
 {
     [Required]
     public string UserId { get; set; } = null!;
 
     [Required]
-    public string Code { get; set; } = null!;
+    [EmailAddress]
+    public string Email { get; set; } = null!;
+
+    [Required]
+    public string Token { get; set; } = null!;
 }

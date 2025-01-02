@@ -3,12 +3,11 @@ using Dapper;
 using Hope.Identity.Dapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
-using Sandbox.FullStackIdentity.Application;
 using Sandbox.FullStackIdentity.Domain;
 
 namespace Sandbox.FullStackIdentity.Persistence;
 
-public sealed class AppUserStore : DapperUserStore<User, IdentityRole<Guid>, Guid>, ISoftUserStore<User>
+public sealed class AppUserStore : DapperUserStore<User, IdentityRole<Guid>, Guid>, IUserInvitationStore<User>, ISoftUserStore<User>
 {
     private readonly string _tablePrefix;
     private readonly string _isDeletedColumn;
@@ -56,5 +55,44 @@ public sealed class AppUserStore : DapperUserStore<User, IdentityRole<Guid>, Gui
             new { userId = user.Id });
 
         return IdentityResult.Success;
+    }
+
+
+    public Task<bool> GetIsInvitedAsync(User user, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+
+        return Task.FromResult(user.IsInvited);
+    }
+
+    public Task SetIsInvitedAsync(User user, bool isInvited, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+
+        user.IsInvited = isInvited;
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> GetInvitationAcceptedAsync(User user, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+
+        return Task.FromResult(user.InvitationAccepted);
+    }
+
+    public Task SetInvitationAcceptedAsync(User user, bool invitationAccepted, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        ArgumentNullException.ThrowIfNull(user);
+
+        user.InvitationAccepted = invitationAccepted;
+        return Task.CompletedTask;
     }
 }

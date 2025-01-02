@@ -20,6 +20,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ITenantValidator, TenantValidator>();
 
         services.AddScoped<IOrganizationAppService, OrganizationAppService>();
+        services.AddScoped<IUserAppService, UserAppService>();
         services.AddScoped<IBookAppService, BookAppService>();
         
         services.AddScoped<IAccountEmailsAppService, AccountEmailsAppService>();

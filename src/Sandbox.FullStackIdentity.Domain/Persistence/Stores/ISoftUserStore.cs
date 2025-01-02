@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 
-namespace Sandbox.FullStackIdentity.Application;
+namespace Sandbox.FullStackIdentity.Domain;
 
 public interface ISoftUserStore<TUser> : IUserStore<TUser> where TUser : class
 {

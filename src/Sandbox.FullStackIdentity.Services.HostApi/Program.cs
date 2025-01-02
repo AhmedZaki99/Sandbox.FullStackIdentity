@@ -119,6 +119,7 @@ public class Program
             {
                 options.SignIn.RequireConfirmedAccount = true;
                 options.SignIn.RequireConfirmedEmail = true;
+                options.Lockout.AllowedForNewUsers = true;
                 options.User.RequireUniqueEmail = true;
                 options.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
             })

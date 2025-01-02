@@ -16,46 +16,57 @@ public sealed class AccountController : ControllerBase
     #region Dependencies
 
     private readonly AppUserManager _userManager;
+    private readonly IUserAppService _userAppService;
+    private readonly IAccountEmailsAppService _accountEmailsAppService;
     private readonly IBearerTokenGenerator _bearerTokenGenerator;
 
     public AccountController(
         AppUserManager userManager,
+        IUserAppService userAppService,
+        IAccountEmailsAppService accountEmailsAppService,
         IBearerTokenGenerator bearerTokenGenerator)
     {
         _userManager = userManager;
+        _userAppService = userAppService;
+        _accountEmailsAppService = accountEmailsAppService;
         _bearerTokenGenerator = bearerTokenGenerator;
     }
 
     #endregion
 
-    #region Actions
+    #region Data Actions
+
+    [HttpGet]
+    public async Task<ActionResult<UserDetailsResponse>> GetDetails(CancellationToken cancellationToken)
+    {
+        var userId = User.GetId();
+        var userDetails = userId is null
+            ? null
+            : await _userAppService.GetDetailsAsync(userId.Value, cancellationToken);
+
+        if (userDetails is null)
+        {
+            return Unauthorized("Invalid or expired bearer token.");
+        }
+        return userDetails;
+    }
+
+    #endregion
+
+    #region Login Actions
 
     [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<BearerTokenResponse>> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
-        if (user is null)
+        var verificationResult = await _userAppService.VerifyLoginRequestAsync(request, cancellationToken);
+        if (!verificationResult.Succeeded)
         {
-            ModelState.AddModelError("Login", "Invalid email or password.");
+            ModelState.AddModelError(string.Empty, verificationResult.ErrorMessage);
             return ValidationProblem(ModelState);
         }
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (!user.EmailConfirmed)
-        {
-            ModelState.AddModelError("Login", "Email is not confirmed.");
-            return ValidationProblem(ModelState);
-        }
-
-        bool passwordCorrect = await _userManager.CheckPasswordAsync(user, request.Password);
-        if (!passwordCorrect)
-        {
-            ModelState.AddModelError("Login", "Invalid email or password.");
-            return ValidationProblem(ModelState);
-        }
-
-        var tokenResponse = await _bearerTokenGenerator.GenerateAsync(user, cancellationToken);
+        
+        var tokenResponse = await _bearerTokenGenerator.GenerateAsync(verificationResult.User, cancellationToken);
         if (tokenResponse is null)
         {
             return Problem("Failed to generate authentication tokens.");
@@ -63,6 +74,70 @@ public sealed class AccountController : ControllerBase
         return tokenResponse;
     }
 
+    [AllowAnonymous]
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] UserEmailRequest request, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user is null || !user.EmailConfirmed)
+        {
+            // Don't reveal private information to anonymous users.
+            return Ok();
+        }
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+        await _accountEmailsAppService.SendResetPasswordLinkAsync(user, token, cancellationToken);
+        return Ok();
+    }
+
+    [AllowAnonymous]
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.FindByIdAsync(request.UserId);
+        if (user is null)
+        {
+            return NotFound($"Unable to load user with ID '{request.UserId}'.");
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+
+        var result = await _userManager.ResetPasswordAsync(user, token, request.Password);
+        if (!result.Succeeded)
+        {
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+            return ValidationProblem(ModelState);
+        }
+        return Ok();
+    }
+
+    #endregion
+
+    #region Registration Actions
+
+    [AllowAnonymous]
+    [HttpPost("resend-email-confirmation")]
+    public async Task<IActionResult> ResendEmailConfirmation([FromBody] UserEmailRequest request, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user is null || user.EmailConfirmed)
+        {
+            // Don't reveal private information to anonymous users.
+            return Ok();
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+        await _accountEmailsAppService.SendEmailConfirmationCodeAsync(user, code, cancellationToken);
+        return Ok();
+    }
 
     [AllowAnonymous]
     [HttpPost("confirm-email")]
@@ -76,7 +151,8 @@ public sealed class AccountController : ControllerBase
 
         if (user.EmailConfirmed)
         {
-            return BadRequest("Email has already been confirmed.");
+            ModelState.AddModelError(string.Empty, "Email has already been confirmed.");
+            return ValidationProblem(ModelState);
         }
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -107,29 +183,12 @@ public sealed class AccountController : ControllerBase
         {
             return NotFound($"Unable to load user with ID '{request.UserId}'.");
         }
-
-        if (user.EmailConfirmed)
-        {
-            return BadRequest("Invitation has already been accepted.");
-        }
-        cancellationToken.ThrowIfCancellationRequested();
-
         var token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
 
-        var confirmResult = await _userManager.ConfirmInvitedEmailAsync(user, token);
-        if (!confirmResult.Succeeded)
+        var result = await _userAppService.CompleteInvitedUserAsync(user, token, request.Password, cancellationToken);
+        if (!result.Succeeded)
         {
-            foreach (var error in confirmResult.Errors)
-            {
-                ModelState.AddModelError(error.Code, error.Description);
-            }
-            return ValidationProblem(ModelState);
-        }
-
-        var passwordResult = await _userManager.AddPasswordAsync(user, request.Password);
-        if (!passwordResult.Succeeded)
-        {
-            foreach (var error in passwordResult.Errors)
+            foreach (var error in result.Errors)
             {
                 ModelState.AddModelError(error.Code, error.Description);
             }
@@ -144,6 +203,102 @@ public sealed class AccountController : ControllerBase
         return tokenResponse;
     }
 
+    #endregion
+
+    #region Management Actions
+
+    [HttpPost("change-password")]
+    public async Task<ActionResult<BearerTokenResponse>> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null)
+        {
+            return Unauthorized("Invalid or expired bearer token.");
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var result = await _userManager.ChangePasswordAsync(user, request.OldPassword, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+            return ValidationProblem(ModelState);
+        }
+
+        var tokenResponse = await _bearerTokenGenerator.GenerateAsync(user, cancellationToken);
+        if (tokenResponse is null)
+        {
+            return Problem("Failed to generate authentication tokens after successful password change.");
+        }
+        return tokenResponse;
+    }
+
+    [HttpPost("change-email")]
+    public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest request, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null)
+        {
+            return Unauthorized("Invalid or expired bearer token.");
+        }
+        if (user.Email == request.NewEmail)
+        {
+            ModelState.AddModelError(string.Empty, "New email is the same as the current email.");
+            return ValidationProblem(ModelState);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var token = await _userManager.GenerateChangeEmailTokenAsync(user, request.NewEmail);
+        token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+        await _accountEmailsAppService.SendChangeEmailLinkAsync(user, token, request.NewEmail, cancellationToken);
+        return Ok();
+    }
+
+    [AllowAnonymous]
+    [HttpPost("confirm-email-change")]
+    public async Task<ActionResult<BearerTokenResponse>> ConfirmEmailChange([FromBody] ConfirmEmailChangeRequest request, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.FindByIdAsync(request.UserId);
+        if (user is null)
+        {
+            return NotFound($"Unable to load user with ID '{request.UserId}'.");
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+
+        var result = await _userManager.ChangeEmailAsync(user, request.Email, token);
+        if (!result.Succeeded)
+        {
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+            return ValidationProblem(ModelState);
+        }
+
+        // Username and Email are the same.
+        result = await _userManager.SetUserNameAsync(user, request.Email);
+        if (!result.Succeeded)
+        {
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+            return ValidationProblem(ModelState);
+        }
+
+        var tokenResponse = await _bearerTokenGenerator.GenerateAsync(user, cancellationToken);
+        if (tokenResponse is null)
+        {
+            return Problem("Failed to generate authentication tokens.");
+        }
+        return tokenResponse;
+    }
+    
     #endregion
 
 }

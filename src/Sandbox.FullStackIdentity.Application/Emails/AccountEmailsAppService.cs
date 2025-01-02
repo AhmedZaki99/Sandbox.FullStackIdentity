@@ -38,6 +38,37 @@ internal sealed class AccountEmailsAppService : IAccountEmailsAppService
         return Result.Ok();
     }
     
+
+    /// <inheritdoc/>
+    public async Task<Result> SendResetPasswordLinkAsync(User user, string token, CancellationToken cancellationToken = default)
+    {
+        var emailData = new
+        {
+            name = user.UserName,
+            userId = user.Id,
+            token
+        };
+
+        await _emailSender.SendAsync(user.Email, EmailTemplateKeys.ResetPassword, emailData, cancellationToken);
+        return Result.Ok();
+    }
+    
+    /// <inheritdoc/>
+    public async Task<Result> SendChangeEmailLinkAsync(User user, string token, string email, CancellationToken cancellationToken = default)
+    {
+        var emailData = new
+        {
+            name = user.UserName,
+            userId = user.Id,
+            email,
+            token
+        };
+
+        await _emailSender.SendAsync(email, EmailTemplateKeys.ConfirmEmailChange, emailData, cancellationToken);
+        return Result.Ok();
+    }
+    
+
     /// <inheritdoc/>
     public async Task<Result> SendInvitationLinkAsync(User user, string token, int tokenExpirationDays, CancellationToken cancellationToken = default)
     {

@@ -2,7 +2,7 @@
 
 namespace Sandbox.FullStackIdentity.Contracts;
 
-public sealed class AcceptInvitationRequest
+public sealed class ResetPasswordRequest
 {
     [Required]
     public string UserId { get; set; } = null!;

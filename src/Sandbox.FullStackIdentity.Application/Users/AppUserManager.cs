@@ -43,6 +43,11 @@ public class AppUserManager : UserManager<User>
     }
 
 
+    public virtual Task<User?> FindByIdAsync(Guid userId)
+    {
+        return FindByIdAsync(userId.ToString());
+    }
+
     public virtual Task<IdentityResult> DeletePermanentlyAsync(User user)
     {
         ThrowIfDisposed();
@@ -50,6 +55,7 @@ public class AppUserManager : UserManager<User>
 
         return GetSoftUserStore().DeletePermanentlyAsync(user, CancellationToken);
     }
+
 
     public virtual Task<string> GenerateInvitationTokenAsync(User user)
     {
@@ -70,12 +76,20 @@ public class AppUserManager : UserManager<User>
         {
             throw new NotSupportedException("The user store doesn't support email confirmation.");
         }
+        if (Store is not IUserInvitationStore<User> invitationStore)
+        {
+            throw new NotSupportedException("The user store doesn't support invitations.");
+        }
 
         if (!await VerifyInvitationTokenAsync(user, token))
         {
             return IdentityResult.Failed(ErrorDescriber.InvalidToken());
         }
+
         await emailStore.SetEmailConfirmedAsync(user, true, CancellationToken);
+        await invitationStore.SetIsInvitedAsync(user, true, CancellationToken);
+        await invitationStore.SetInvitationAcceptedAsync(user, true, CancellationToken);
+
         return await UpdateUserAsync(user);
     }
 
