@@ -31,33 +31,36 @@ public sealed class BooksController : ControllerBase
     public async Task<ActionResult<PagedList<BookResponse>>> List(
         [FromQuery] int page = 1, 
         [FromQuery] int pageSize = 30, 
-        [FromQuery] bool ownedOnly = false, 
+        [FromQuery] Guid creatorId = default,
+        [FromQuery] string? senderEmail = null, 
         CancellationToken cancellationToken = default)
     {
         if (!ReadPermissionGranted(User))
         {
             return Unauthorized("You don't have permission to read your organization's data.");
         }
-        var ownerId = ownedOnly ? User.GetId() : null;
 
-        return await _bookAppService.ListAsync(page, pageSize, ownerId, cancellationToken);
+        if (creatorId != default)
+        {
+            return await _bookAppService.ListAsync(creatorId, page, pageSize, cancellationToken);
+        }
+        if (senderEmail != null)
+        {
+            return await _bookAppService.ListAsync(senderEmail, page, pageSize, cancellationToken);
+        }
+        return await _bookAppService.ListAsync(page, pageSize, cancellationToken);
     }
 
     [HttpGet("deleted")]
-    public async Task<ActionResult<PagedList<BookResponse>>> ListDeleted(
-        [FromQuery] int page = 1, 
-        [FromQuery] int pageSize = 30, 
-        [FromQuery] bool ownedOnly = false, 
-        CancellationToken cancellationToken = default)
+    public async Task<ActionResult<PagedList<BookResponse>>> ListDeleted([FromQuery] int page = 1, [FromQuery] int pageSize = 30, CancellationToken cancellationToken = default)
     {
         if (!ReadPermissionGranted(User))
         {
             return Unauthorized("You don't have permission to read your organization's data.");
         }
-        var ownerId = ownedOnly ? User.GetId() : null;
-
-        return await _bookAppService.ListDeletedAsync(page, pageSize, ownerId, cancellationToken);
+        return await _bookAppService.ListDeletedAsync(page, pageSize, cancellationToken);
     }
+
 
     [HttpGet("{bookId:guid}")]
     public async Task<ActionResult<BookResponse>> Get(Guid bookId, CancellationToken cancellationToken = default)
@@ -75,7 +78,6 @@ public sealed class BooksController : ControllerBase
         return book;
     }
 
-
     [HttpPost]
     public async Task<ActionResult<BookResponse>> Create([FromBody] BookRequest request, CancellationToken cancellationToken = default)
     {
@@ -89,7 +91,7 @@ public sealed class BooksController : ControllerBase
             return Unauthorized("Invalid or expired bearer token.");
         }
 
-        var result = await _bookAppService.CreateAsync(userId.Value, request, cancellationToken);
+        var result = await _bookAppService.CreateAsync(request, userId.Value, cancellationToken);
         if (result.IsFailed)
         {
             foreach (var error in result.Errors)

@@ -23,25 +23,37 @@ internal sealed class BookAppService : IBookAppService
     #region Implementation
 
     /// <inheritdoc/>
-    public async Task<PagedList<BookResponse>> ListAsync(int page = 1, int pageSize = 30, Guid? ownerId = null, CancellationToken cancellationToken = default)
+    public async Task<PagedList<BookResponse>> ListAsync(int page = 1, int pageSize = 30, CancellationToken cancellationToken = default)
     {
         var paginationParams = new PaginationParams(page, pageSize);
+        var pageResult = await _bookRepository.ListAsync(paginationParams, deleted: false, cancellationToken);
 
-        var pageResult = ownerId.HasValue
-            ? await _bookRepository.ListByOwnerAsync(ownerId.Value, paginationParams, deleted: false, cancellationToken)
-            : await _bookRepository.ListAsync(paginationParams, deleted: false, cancellationToken);
+        return pageResult.MapItems(book => book.ToResponse());
+    }
+    
+    /// <inheritdoc/>
+    public async Task<PagedList<BookResponse>> ListAsync(Guid creatorId, int page = 1, int pageSize = 30, CancellationToken cancellationToken = default)
+    {
+        var paginationParams = new PaginationParams(page, pageSize);
+        var pageResult = await _bookRepository.ListByCreatorAsync(creatorId, paginationParams, cancellationToken: cancellationToken);
+
+        return pageResult.MapItems(book => book.ToResponse());
+    }
+    
+    /// <inheritdoc/>
+    public async Task<PagedList<BookResponse>> ListAsync(string senderEmail, int page = 1, int pageSize = 30, CancellationToken cancellationToken = default)
+    {
+        var paginationParams = new PaginationParams(page, pageSize);
+        var pageResult = await _bookRepository.ListBySenderEmailAsync(senderEmail, paginationParams, cancellationToken: cancellationToken);
 
         return pageResult.MapItems(book => book.ToResponse());
     }
 
     /// <inheritdoc/>
-    public async Task<PagedList<BookResponse>> ListDeletedAsync(int page = 1, int pageSize = 30, Guid? ownerId = null, CancellationToken cancellationToken = default)
+    public async Task<PagedList<BookResponse>> ListDeletedAsync(int page = 1, int pageSize = 30, CancellationToken cancellationToken = default)
     {
         var paginationParams = new PaginationParams(page, pageSize);
-
-        var pageResult = ownerId.HasValue
-            ? await _bookRepository.ListByOwnerAsync(ownerId.Value, paginationParams, deleted: true, cancellationToken)
-            : await _bookRepository.ListAsync(paginationParams, deleted: true, cancellationToken);
+        var pageResult = await _bookRepository.ListAsync(paginationParams, deleted: true, cancellationToken);
         
         return pageResult.MapItems(book => book.ToResponse());
     }
@@ -53,20 +65,6 @@ internal sealed class BookAppService : IBookAppService
         var book = await _bookRepository.GetAsync(bookId, cancellationToken: cancellationToken);
 
         return book?.ToResponse();
-    }
-
-    /// <inheritdoc/>
-    public async Task<Result<BookResponse>> CreateAsync(Guid ownerId, BookRequest request, CancellationToken cancellationToken = default)
-    {
-        var book = request.ToBook();
-        book.OwnerId = ownerId;
-
-        var result = await _bookRepository.CreateAsync(book, cancellationToken);
-        if (result.IsFailed)
-        {
-            return result.ToResult();
-        }
-        return result.Value.ToResponse();
     }
 
     /// <inheritdoc/>
@@ -86,6 +84,48 @@ internal sealed class BookAppService : IBookAppService
     public Task<Result> DeleteAsync(Guid bookId, CancellationToken cancellationToken = default)
     {
         return _bookRepository.DeleteAsync(bookId, cancellationToken);
+    }
+
+
+    /// <inheritdoc/>
+    public async Task<Result<BookResponse>> CreateAsync(BookRequest request, CancellationToken cancellationToken = default)
+    {
+        var book = request.ToBook();
+
+        var result = await _bookRepository.CreateAsync(book, cancellationToken);
+        if (result.IsFailed)
+        {
+            return result.ToResult();
+        }
+        return result.Value.ToResponse();
+    }
+    
+    /// <inheritdoc/>
+    public async Task<Result<BookResponse>> CreateAsync(BookRequest request, Guid creatorId, CancellationToken cancellationToken = default)
+    {
+        var book = request.ToBook();
+        book.CreatorId = creatorId;
+
+        var result = await _bookRepository.CreateAsync(book, cancellationToken);
+        if (result.IsFailed)
+        {
+            return result.ToResult();
+        }
+        return result.Value.ToResponse();
+    }
+    
+    /// <inheritdoc/>
+    public async Task<Result<BookResponse>> CreateAsync(BookRequest request, string senderEmail, CancellationToken cancellationToken = default)
+    {
+        var book = request.ToBook();
+        book.SenderEmail = senderEmail;
+
+        var result = await _bookRepository.CreateAsync(book, cancellationToken);
+        if (result.IsFailed)
+        {
+            return result.ToResult();
+        }
+        return result.Value.ToResponse();
     }
 
     #endregion

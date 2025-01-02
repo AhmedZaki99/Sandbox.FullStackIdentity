@@ -22,6 +22,8 @@ public static class DomainToResponseMappingExtensions
         return new BookResponse(
             book.Id,
             book.Title,
+            book.CreatorId,
+            book.SenderEmail,
             book.Details?.ToResponse()
         );
     }
