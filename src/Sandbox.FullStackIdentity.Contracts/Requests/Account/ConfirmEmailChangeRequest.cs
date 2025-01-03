@@ -12,5 +12,5 @@ public sealed class ConfirmEmailChangeRequest
     public string Email { get; set; } = null!;
 
     [Required]
-    public string Token { get; set; } = null!;
+    public string Code { get; set; } = null!;
 }

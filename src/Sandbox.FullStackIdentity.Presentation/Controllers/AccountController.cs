@@ -236,7 +236,7 @@ public sealed class AccountController : ControllerBase
     }
 
     [HttpPost("change-email")]
-    public async Task<IActionResult> ChangeEmail([FromBody] ChangeEmailRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ChangeEmailResponse>> ChangeEmail([FromBody] ChangeEmailRequest request, CancellationToken cancellationToken)
     {
         var user = await _userManager.GetUserAsync(User);
         if (user is null)
@@ -250,11 +250,10 @@ public sealed class AccountController : ControllerBase
         }
         cancellationToken.ThrowIfCancellationRequested();
 
-        var token = await _userManager.GenerateChangeEmailTokenAsync(user, request.NewEmail);
-        token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        var code = await _userManager.GenerateChangeEmailTokenAsync(user, request.NewEmail);
+        await _accountEmailsAppService.SendChangeEmailCodeAsync(user, code, request.NewEmail, cancellationToken);
 
-        await _accountEmailsAppService.SendChangeEmailLinkAsync(user, token, request.NewEmail, cancellationToken);
-        return Ok();
+        return new ChangeEmailResponse(user.Id, request.NewEmail, Status: "Email confirmation code has been sent.");
     }
 
     [AllowAnonymous]
@@ -268,9 +267,7 @@ public sealed class AccountController : ControllerBase
         }
         cancellationToken.ThrowIfCancellationRequested();
 
-        var token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
-
-        var result = await _userManager.ChangeEmailAsync(user, request.Email, token);
+        var result = await _userManager.ChangeEmailAsync(user, request.Email, request.Code);
         if (!result.Succeeded)
         {
             foreach (var error in result.Errors)

@@ -122,6 +122,7 @@ public class Program
                 options.Lockout.AllowedForNewUsers = true;
                 options.User.RequireUniqueEmail = true;
                 options.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
+                options.Tokens.ChangeEmailTokenProvider = TokenOptions.DefaultEmailProvider;
             })
             .AddDefaultTokenProviders()
             .AddAppManagers();

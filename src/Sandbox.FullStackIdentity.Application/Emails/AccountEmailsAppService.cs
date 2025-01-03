@@ -37,7 +37,33 @@ internal sealed class AccountEmailsAppService : IAccountEmailsAppService
         await _emailSender.SendAsync(user.Email, EmailTemplateKeys.ConfirmEmail, emailData, cancellationToken);
         return Result.Ok();
     }
+
+    /// <inheritdoc/>
+    public async Task<Result> SendChangeEmailCodeAsync(User user, string code, string email, CancellationToken cancellationToken = default)
+    {
+        var emailData = new
+        {
+            name = user.UserName,
+            code
+        };
+
+        await _emailSender.SendAsync(email, EmailTemplateKeys.ConfirmEmailChange, emailData, cancellationToken);
+        return Result.Ok();
+    }
     
+    /// <inheritdoc/>
+    public async Task<Result> SendTwoFactorCodeAsync(User user, string code, CancellationToken cancellationToken = default)
+    {
+        var emailData = new
+        {
+            name = user.UserName,
+            code
+        };
+
+        await _emailSender.SendAsync(user.Email, EmailTemplateKeys.TwoFactorCode, emailData, cancellationToken);
+        return Result.Ok();
+    }
+
 
     /// <inheritdoc/>
     public async Task<Result> SendResetPasswordLinkAsync(User user, string token, CancellationToken cancellationToken = default)
@@ -52,22 +78,6 @@ internal sealed class AccountEmailsAppService : IAccountEmailsAppService
         await _emailSender.SendAsync(user.Email, EmailTemplateKeys.ResetPassword, emailData, cancellationToken);
         return Result.Ok();
     }
-    
-    /// <inheritdoc/>
-    public async Task<Result> SendChangeEmailLinkAsync(User user, string token, string email, CancellationToken cancellationToken = default)
-    {
-        var emailData = new
-        {
-            name = user.UserName,
-            userId = user.Id,
-            email,
-            token
-        };
-
-        await _emailSender.SendAsync(email, EmailTemplateKeys.ConfirmEmailChange, emailData, cancellationToken);
-        return Result.Ok();
-    }
-    
 
     /// <inheritdoc/>
     public async Task<Result> SendInvitationLinkAsync(User user, string token, int tokenExpirationDays, CancellationToken cancellationToken = default)
